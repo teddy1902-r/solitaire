@@ -18,12 +18,15 @@ let seconds = 0;
 let timerInterval = null;
 let gameStarted = false;
 let gameWon = false;
+let autoFinishing = false;
+let gameId = 0;
 
 const USE_NATIVE_DRAG =
   typeof window.matchMedia !== 'function' ||
   window.matchMedia('(pointer: fine)').matches;
 
 function initGame() {
+  gameId++;
   clearInterval(timerInterval);
   timerInterval = null;
 
@@ -42,6 +45,7 @@ function initGame() {
   seconds = 0;
   gameStarted = false;
   gameWon = false;
+  autoFinishing = false;
 
   for (let col = 0; col < 7; col++) {
     for (let row = col; row < 7; row++) {
@@ -83,13 +87,18 @@ function shuffle(array) {
 }
 
 function startTimer() {
-  if (gameStarted || gameWon) return;
+  if (gameStarted || gameWon || autoFinishing) return;
 
   gameStarted = true;
   timerInterval = setInterval(() => {
     seconds++;
     updateStats();
   }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
 }
 
 function formatTime(totalSeconds) {
@@ -170,7 +179,7 @@ function renderStock() {
 }
 
 function drawFromStock() {
-  if (gameWon || stock.length === 0) return;
+  if (gameWon || autoFinishing || stock.length === 0) return;
 
   clearInteractionState();
 
@@ -183,7 +192,14 @@ function drawFromStock() {
 }
 
 function resetStock() {
-  if (gameWon || stock.length !== 0 || waste.length === 0) return;
+  if (
+    gameWon ||
+    autoFinishing ||
+    stock.length !== 0 ||
+    waste.length === 0
+  ) {
+    return;
+  }
 
   clearInteractionState();
 
@@ -211,6 +227,7 @@ function renderWaste() {
 
   cardEl.addEventListener('click', e => {
     e.stopPropagation();
+    if (autoFinishing) return;
 
     if (isSameSource(selectedSource, source)) {
       clearSelection();
@@ -223,6 +240,7 @@ function renderWaste() {
   cardEl.addEventListener('dblclick', e => {
     e.preventDefault();
     e.stopPropagation();
+    if (autoFinishing) return;
     moveCardAutomaticallyToFoundation(topCard, source);
   });
 
@@ -245,6 +263,7 @@ function renderFoundations() {
 
       cardEl.addEventListener('click', e => {
         e.stopPropagation();
+        if (autoFinishing) return;
 
         if (
           selectedCards.length > 0 &&
@@ -268,17 +287,19 @@ function renderFoundations() {
     }
 
     el.onclick = () => {
+      if (autoFinishing) return;
       if (selectedCards.length > 0 && !tryMoveToFoundation(suit)) {
         flashInvalid(el);
       }
     };
 
     el.ondragover = e => {
-      if (USE_NATIVE_DRAG) e.preventDefault();
+      if (USE_NATIVE_DRAG && !autoFinishing) e.preventDefault();
     };
 
     el.ondrop = e => {
       e.preventDefault();
+      if (autoFinishing) return;
       handleDropOnFoundation(suit);
     };
   });
@@ -353,6 +374,7 @@ function renderTableau() {
 
         cardEl.addEventListener('click', e => {
           e.stopPropagation();
+          if (autoFinishing) return;
 
           if (selectedCards.length > 0) {
             if (isSameSource(selectedSource, source)) {
@@ -382,6 +404,7 @@ function renderTableau() {
         cardEl.addEventListener('dblclick', e => {
           e.preventDefault();
           e.stopPropagation();
+          if (autoFinishing) return;
 
           if (cardIndex === cards.length - 1) {
             moveCardAutomaticallyToFoundation(card, source);
@@ -403,24 +426,26 @@ function renderTableau() {
     )}px`;
 
     el.onclick = () => {
+      if (autoFinishing) return;
       if (selectedCards.length > 0 && !tryMoveToTableau(colIndex)) {
         flashInvalid(el);
       }
     };
 
     el.ondragover = e => {
-      if (USE_NATIVE_DRAG) e.preventDefault();
+      if (USE_NATIVE_DRAG && !autoFinishing) e.preventDefault();
     };
 
     el.ondrop = e => {
       e.preventDefault();
+      if (autoFinishing) return;
       handleDropOnTableau(colIndex);
     };
   });
 }
 
 function selectCards(cards, source, element) {
-  if (gameWon) return;
+  if (gameWon || autoFinishing) return;
 
   startTimer();
   clearSelection();
@@ -509,7 +534,7 @@ function addDragEvents(element, cards, source) {
   element.draggable = true;
 
   element.addEventListener('dragstart', e => {
-    if (gameWon) {
+    if (gameWon || autoFinishing) {
       e.preventDefault();
       return;
     }
@@ -530,7 +555,7 @@ function addDragEvents(element, cards, source) {
 }
 
 function handleDropOnTableau(targetColIndex) {
-  if (draggedCards.length === 0) return;
+  if (autoFinishing || draggedCards.length === 0) return;
 
   const moved = moveCardsToTableau(
     draggedCards,
@@ -549,7 +574,7 @@ function handleDropOnTableau(targetColIndex) {
 }
 
 function handleDropOnFoundation(targetSuit) {
-  if (draggedCards.length !== 1) return;
+  if (autoFinishing || draggedCards.length !== 1) return;
 
   const moved = moveCardsToFoundation(
     draggedCards,
@@ -568,7 +593,7 @@ function handleDropOnFoundation(targetSuit) {
 }
 
 function tryMoveToTableau(targetColIndex) {
-  if (selectedCards.length === 0) return false;
+  if (autoFinishing || selectedCards.length === 0) return false;
 
   return moveCardsToTableau(
     selectedCards,
@@ -578,7 +603,7 @@ function tryMoveToTableau(targetColIndex) {
 }
 
 function tryMoveToFoundation(targetSuit) {
-  if (selectedCards.length !== 1) return false;
+  if (autoFinishing || selectedCards.length !== 1) return false;
 
   return moveCardsToFoundation(
     selectedCards,
@@ -588,7 +613,13 @@ function tryMoveToFoundation(targetSuit) {
 }
 
 function moveCardsToTableau(cards, source, targetColIndex) {
-  if (!cards || cards.length === 0 || !source || gameWon) {
+  if (
+    !cards ||
+    cards.length === 0 ||
+    !source ||
+    gameWon ||
+    autoFinishing
+  ) {
     return false;
   }
 
@@ -632,13 +663,22 @@ function moveCardsToTableau(cards, source, targetColIndex) {
   clearInteractionState();
   registerMove(points);
   render();
-  checkWin();
+
+  if (!checkWin()) {
+    maybeStartAutoFinish();
+  }
 
   return true;
 }
 
 function moveCardsToFoundation(cards, source, targetSuit) {
-  if (!cards || cards.length !== 1 || !source || gameWon) {
+  if (
+    !cards ||
+    cards.length !== 1 ||
+    !source ||
+    gameWon ||
+    autoFinishing
+  ) {
     return false;
   }
 
@@ -671,7 +711,10 @@ function moveCardsToFoundation(cards, source, targetSuit) {
   clearInteractionState();
   registerMove(points);
   render();
-  checkWin();
+
+  if (!checkWin()) {
+    maybeStartAutoFinish();
+  }
 
   return true;
 }
@@ -710,10 +753,87 @@ function checkTableauFlip() {
 }
 
 function moveCardAutomaticallyToFoundation(card, source) {
-  if (!card || !source || gameWon) return;
+  if (!card || !source || gameWon || autoFinishing) return;
 
   clearSelection();
   moveCardsToFoundation([card], source, card.suit);
+}
+
+function canAutoFinish() {
+  if (gameWon || autoFinishing) return false;
+  if (stock.length !== 0 || waste.length !== 0) return false;
+
+  const remainingCards = tableau.reduce(
+    (total, col) => total + col.length,
+    0
+  );
+
+  if (remainingCards === 0) return false;
+
+  return tableau.every(col =>
+    col.every(card => card.faceUp)
+  );
+}
+
+function maybeStartAutoFinish() {
+  if (!canAutoFinish()) return;
+  autoFinishGame();
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function autoFinishGame() {
+  if (!canAutoFinish()) return;
+
+  const currentGameId = gameId;
+  autoFinishing = true;
+  stopTimer();
+  clearInteractionState();
+
+  const remainingCards = tableau
+    .flat()
+    .slice()
+    .sort((a, b) => {
+      if (a.rank !== b.rank) return a.rank - b.rank;
+      return SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit);
+    });
+
+  for (const card of remainingCards) {
+    if (currentGameId !== gameId || gameWon) return;
+
+    let sourceCol = -1;
+    let sourceIndex = -1;
+
+    for (let colIndex = 0; colIndex < tableau.length; colIndex++) {
+      const index = tableau[colIndex].indexOf(card);
+      if (index !== -1) {
+        sourceCol = colIndex;
+        sourceIndex = index;
+        break;
+      }
+    }
+
+    if (sourceCol === -1) continue;
+
+    tableau[sourceCol].splice(sourceIndex, 1);
+    card.faceUp = true;
+    foundations[card.suit].push(card);
+
+    // Même valeur qu'un placement manuel dans une fondation.
+    // Le score augmente, mais le nombre de coups du joueur ne change pas.
+    score += 10;
+    updateStats();
+    render();
+
+    await sleep(85);
+  }
+
+  if (currentGameId !== gameId) return;
+
+  autoFinishing = false;
+  checkWin();
 }
 
 function flashInvalid(element) {
@@ -734,11 +854,11 @@ function checkWin() {
     0
   );
 
-  if (total !== 52) return;
+  if (total !== 52) return false;
 
   gameWon = true;
-  clearInterval(timerInterval);
-  timerInterval = null;
+  autoFinishing = false;
+  stopTimer();
   clearInteractionState();
 
   document.getElementById('final-time').textContent = formatTime(seconds);
@@ -746,8 +866,12 @@ function checkWin() {
   document.getElementById('final-score').textContent = score;
 
   setTimeout(() => {
-    document.getElementById('win-modal').classList.remove('hidden');
+    if (gameWon) {
+      document.getElementById('win-modal').classList.remove('hidden');
+    }
   }, 300);
+
+  return true;
 }
 
 document.getElementById('restart-btn').addEventListener('click', initGame);
