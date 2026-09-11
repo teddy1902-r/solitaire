@@ -25,7 +25,24 @@ const USE_NATIVE_DRAG =
   typeof window.matchMedia !== 'function' ||
   window.matchMedia('(pointer: fine)').matches;
 
+function hasPlayerIdentity() {
+  return Boolean(
+    window.solitaireCommunity &&
+    typeof window.solitaireCommunity.getPlayer === 'function' &&
+    window.solitaireCommunity.getPlayer()
+  );
+}
+
+function requestPlayerIdentity() {
+  window.dispatchEvent(new CustomEvent('solitaire-needs-player'));
+}
+
 function initGame() {
+  if (!hasPlayerIdentity()) {
+    requestPlayerIdentity();
+    return false;
+  }
+
   gameId++;
   clearInterval(timerInterval);
   timerInterval = null;
@@ -59,6 +76,9 @@ function initGame() {
   document.getElementById('win-modal').classList.add('hidden');
   updateStats();
   render();
+
+  window.dispatchEvent(new CustomEvent('solitaire-game-started'));
+  return true;
 }
 
 function createDeck() {
@@ -583,8 +603,8 @@ function handleDropOnFoundation(targetSuit) {
   );
 
   if (!moved) {
-    const target = document.querySelector(
-      `.foundation[data-suit="${CSS.escape(targetSuit)}"]`
+    const target = Array.from(document.querySelectorAll('.foundation')).find(
+      el => el.dataset.suit === targetSuit
     );
     flashInvalid(target);
   }
@@ -861,9 +881,20 @@ function checkWin() {
   stopTimer();
   clearInteractionState();
 
+  const result = {
+    score,
+    seconds,
+    moves,
+    finishedAt: new Date().toISOString()
+  };
+
   document.getElementById('final-time').textContent = formatTime(seconds);
   document.getElementById('final-moves').textContent = moves;
   document.getElementById('final-score').textContent = score;
+
+  window.dispatchEvent(
+    new CustomEvent('solitaire-win', { detail: result })
+  );
 
   setTimeout(() => {
     if (gameWon) {
@@ -884,8 +915,22 @@ window.addEventListener('resize', () => {
 
   resizeTimer = setTimeout(() => {
     clearInteractionState();
-    renderTableau();
+    if (hasPlayerIdentity()) renderTableau();
   }, 150);
 });
 
-initGame();
+window.solitaireGame = {
+  initGame,
+  formatTime,
+  getResult() {
+    return {
+      score,
+      seconds,
+      moves,
+      won: gameWon
+    };
+  }
+};
+
+// Le jeu est volontairement NON lancé ici.
+// community.js appelle initGame() uniquement après validation du pseudo Geocaching.
