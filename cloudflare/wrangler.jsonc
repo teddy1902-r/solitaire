@@ -1,0 +1,15 @@
+{
+  "name": "solitaire-scores",
+  "main": "worker.js",
+  "compatibility_date": "2026-09-12",
+  "vars": {
+    "ALLOWED_ORIGIN": "https://teddy1902-r.github.io"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "solitaire-scores",
+      "database_id": "REMPLACE_PAR_ID_D1"
+    }
+  ]
+}
