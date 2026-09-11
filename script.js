@@ -19,8 +19,13 @@ let timerInterval = null;
 let gameStarted = false;
 let gameWon = false;
 
+const USE_NATIVE_DRAG =
+  typeof window.matchMedia !== 'function' ||
+  window.matchMedia('(pointer: fine)').matches;
+
 function initGame() {
   clearInterval(timerInterval);
+  timerInterval = null;
 
   deck = createDeck();
   shuffle(deck);
@@ -30,10 +35,7 @@ function initGame() {
   foundations = { '♥': [], '♦': [], '♣': [], '♠': [] };
   tableau = [[], [], [], [], [], [], []];
 
-  draggedCards = [];
-  sourceLocation = null;
-  selectedCards = [];
-  selectedSource = null;
+  clearInteractionState();
 
   moves = 0;
   score = 0;
@@ -170,10 +172,12 @@ function renderStock() {
 function drawFromStock() {
   if (gameWon || stock.length === 0) return;
 
-  clearSelection();
+  clearInteractionState();
+
   const card = stock.pop();
   card.faceUp = true;
   waste.push(card);
+
   registerMove();
   render();
 }
@@ -181,7 +185,7 @@ function drawFromStock() {
 function resetStock() {
   if (gameWon || stock.length !== 0 || waste.length === 0) return;
 
-  clearSelection();
+  clearInteractionState();
 
   while (waste.length > 0) {
     const card = waste.pop();
@@ -201,17 +205,25 @@ function renderWaste() {
 
   const topCard = waste[waste.length - 1];
   const cardEl = createCardElement(topCard);
+  const source = { type: 'waste' };
 
-  addDragEvents(cardEl, [topCard], { type: 'waste' });
+  addDragEvents(cardEl, [topCard], source);
 
   cardEl.addEventListener('click', e => {
     e.stopPropagation();
-    selectCards([topCard], { type: 'waste' }, cardEl);
+
+    if (isSameSource(selectedSource, source)) {
+      clearSelection();
+      return;
+    }
+
+    selectCards([topCard], source, cardEl);
   });
 
   cardEl.addEventListener('dblclick', e => {
+    e.preventDefault();
     e.stopPropagation();
-    moveCardAutomaticallyToFoundation(topCard, { type: 'waste' });
+    moveCardAutomaticallyToFoundation(topCard, source);
   });
 
   wasteEl.appendChild(cardEl);
@@ -221,33 +233,50 @@ function renderFoundations() {
   document.querySelectorAll('.foundation').forEach(el => {
     const suit = el.dataset.suit;
     const cards = foundations[suit];
+    const foundationSource = { type: 'foundation', suit };
+
     el.innerHTML = '';
 
     if (cards.length > 0) {
       const topCard = cards[cards.length - 1];
       const cardEl = createCardElement(topCard);
 
-      addDragEvents(cardEl, [topCard], { type: 'foundation', suit });
+      addDragEvents(cardEl, [topCard], foundationSource);
 
       cardEl.addEventListener('click', e => {
         e.stopPropagation();
 
-        if (selectedCards.length > 0 && selectedSource?.type !== 'foundation') {
-          tryMoveToFoundation(suit);
+        if (
+          selectedCards.length > 0 &&
+          selectedSource?.type !== 'foundation'
+        ) {
+          if (!tryMoveToFoundation(suit)) {
+            flashInvalid(cardEl);
+          }
           return;
         }
 
-        selectCards([topCard], { type: 'foundation', suit }, cardEl);
+        if (isSameSource(selectedSource, foundationSource)) {
+          clearSelection();
+          return;
+        }
+
+        selectCards([topCard], foundationSource, cardEl);
       });
 
       el.appendChild(cardEl);
     }
 
     el.onclick = () => {
-      if (selectedCards.length > 0) tryMoveToFoundation(suit);
+      if (selectedCards.length > 0 && !tryMoveToFoundation(suit)) {
+        flashInvalid(el);
+      }
     };
 
-    el.ondragover = e => e.preventDefault();
+    el.ondragover = e => {
+      if (USE_NATIVE_DRAG) e.preventDefault();
+    };
+
     el.ondrop = e => {
       e.preventDefault();
       handleDropOnFoundation(suit);
@@ -300,6 +329,7 @@ function renderTableau() {
 
   colEls.forEach((el, colIndex) => {
     el.innerHTML = '';
+
     const cards = tableau[colIndex];
     let topPosition = 0;
 
@@ -313,40 +343,48 @@ function renderTableau() {
 
       if (card.faceUp) {
         const movingCards = cards.slice(cardIndex);
-
-        addDragEvents(cardEl, movingCards, {
+        const source = {
           type: 'tableau',
           colIndex,
           cardIndex
-        });
+        };
+
+        addDragEvents(cardEl, movingCards, source);
 
         cardEl.addEventListener('click', e => {
           e.stopPropagation();
 
-          if (
-            selectedCards.length > 0 &&
-            !isSameSelection(colIndex, cardIndex)
-          ) {
-            const moved = tryMoveToTableau(colIndex);
-            if (moved) return;
+          if (selectedCards.length > 0) {
+            if (isSameSource(selectedSource, source)) {
+              clearSelection();
+              return;
+            }
+
+            if (
+              selectedSource?.type === 'tableau' &&
+              selectedSource.colIndex === colIndex
+            ) {
+              selectCards(movingCards, source, cardEl);
+              return;
+            }
+
+            if (tryMoveToTableau(colIndex)) {
+              return;
+            }
+
+            flashInvalid(cardEl);
+            return;
           }
 
-          selectCards(
-            movingCards,
-            { type: 'tableau', colIndex, cardIndex },
-            cardEl
-          );
+          selectCards(movingCards, source, cardEl);
         });
 
         cardEl.addEventListener('dblclick', e => {
+          e.preventDefault();
           e.stopPropagation();
 
           if (cardIndex === cards.length - 1) {
-            moveCardAutomaticallyToFoundation(card, {
-              type: 'tableau',
-              colIndex,
-              cardIndex
-            });
+            moveCardAutomaticallyToFoundation(card, source);
           }
         });
       }
@@ -354,15 +392,26 @@ function renderTableau() {
       el.appendChild(cardEl);
     });
 
-    const stockHeight = document.getElementById('stock').getBoundingClientRect().height || 150;
+    const stockHeight =
+      document.getElementById('stock').getBoundingClientRect().height || 150;
+
     const minimumHeight = window.innerWidth <= 700 ? 380 : 480;
-    el.style.minHeight = `${Math.max(topPosition + stockHeight + 15, minimumHeight)}px`;
+
+    el.style.minHeight = `${Math.max(
+      topPosition + stockHeight + 15,
+      minimumHeight
+    )}px`;
 
     el.onclick = () => {
-      if (selectedCards.length > 0) tryMoveToTableau(colIndex);
+      if (selectedCards.length > 0 && !tryMoveToTableau(colIndex)) {
+        flashInvalid(el);
+      }
     };
 
-    el.ondragover = e => e.preventDefault();
+    el.ondragover = e => {
+      if (USE_NATIVE_DRAG) e.preventDefault();
+    };
+
     el.ondrop = e => {
       e.preventDefault();
       handleDropOnTableau(colIndex);
@@ -375,8 +424,10 @@ function selectCards(cards, source, element) {
 
   startTimer();
   clearSelection();
-  selectedCards = cards;
-  selectedSource = source;
+
+  selectedCards = [...cards];
+  selectedSource = { ...source };
+
   element.classList.add('selected');
 }
 
@@ -389,76 +440,167 @@ function clearSelection() {
   });
 }
 
-function isSameSelection(colIndex, cardIndex) {
-  return (
-    selectedSource?.type === 'tableau' &&
-    selectedSource.colIndex === colIndex &&
-    selectedSource.cardIndex === cardIndex
-  );
+function clearDragState() {
+  draggedCards = [];
+  sourceLocation = null;
+}
+
+function clearInteractionState() {
+  clearSelection();
+  clearDragState();
+}
+
+function isSameSource(a, b) {
+  if (!a || !b || a.type !== b.type) return false;
+
+  if (a.type === 'waste') return true;
+
+  if (a.type === 'foundation') {
+    return a.suit === b.suit;
+  }
+
+  if (a.type === 'tableau') {
+    return (
+      a.colIndex === b.colIndex &&
+      a.cardIndex === b.cardIndex
+    );
+  }
+
+  return false;
+}
+
+function sourceContainsCards(cards, source) {
+  if (!source || !cards || cards.length === 0) return false;
+
+  if (source.type === 'waste') {
+    return cards.length === 1 && waste[waste.length - 1] === cards[0];
+  }
+
+  if (source.type === 'foundation') {
+    const pile = foundations[source.suit];
+    return cards.length === 1 && pile[pile.length - 1] === cards[0];
+  }
+
+  if (source.type === 'tableau') {
+    const pile = tableau[source.colIndex];
+
+    if (
+      !pile ||
+      source.cardIndex < 0 ||
+      source.cardIndex + cards.length > pile.length
+    ) {
+      return false;
+    }
+
+    return cards.every(
+      (card, offset) => pile[source.cardIndex + offset] === card
+    );
+  }
+
+  return false;
 }
 
 function addDragEvents(element, cards, source) {
+  if (!USE_NATIVE_DRAG) {
+    element.draggable = false;
+    return;
+  }
+
   element.draggable = true;
 
-  element.addEventListener('dragstart', () => {
-    if (gameWon) return;
+  element.addEventListener('dragstart', e => {
+    if (gameWon) {
+      e.preventDefault();
+      return;
+    }
+
+    clearSelection();
     startTimer();
-    draggedCards = cards;
-    sourceLocation = source;
+
+    draggedCards = [...cards];
+    sourceLocation = { ...source };
+
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', 'solitaire-card');
+    }
   });
 
-  element.addEventListener('dragend', () => {
-    draggedCards = [];
-    sourceLocation = null;
-  });
+  element.addEventListener('dragend', clearDragState);
 }
 
 function handleDropOnTableau(targetColIndex) {
   if (draggedCards.length === 0) return;
 
-  moveCardsToTableau(draggedCards, sourceLocation, targetColIndex);
-  draggedCards = [];
-  sourceLocation = null;
+  const moved = moveCardsToTableau(
+    draggedCards,
+    sourceLocation,
+    targetColIndex
+  );
+
+  if (!moved) {
+    const target = document.querySelector(
+      `.column[data-col="${targetColIndex}"]`
+    );
+    flashInvalid(target);
+  }
+
+  clearDragState();
 }
 
 function handleDropOnFoundation(targetSuit) {
   if (draggedCards.length !== 1) return;
 
-  moveCardsToFoundation(draggedCards, sourceLocation, targetSuit);
-  draggedCards = [];
-  sourceLocation = null;
+  const moved = moveCardsToFoundation(
+    draggedCards,
+    sourceLocation,
+    targetSuit
+  );
+
+  if (!moved) {
+    const target = document.querySelector(
+      `.foundation[data-suit="${CSS.escape(targetSuit)}"]`
+    );
+    flashInvalid(target);
+  }
+
+  clearDragState();
 }
 
 function tryMoveToTableau(targetColIndex) {
   if (selectedCards.length === 0) return false;
 
-  const success = moveCardsToTableau(
+  return moveCardsToTableau(
     selectedCards,
     selectedSource,
     targetColIndex
   );
-
-  if (success) clearSelection();
-  return success;
 }
 
 function tryMoveToFoundation(targetSuit) {
   if (selectedCards.length !== 1) return false;
 
-  const success = moveCardsToFoundation(
+  return moveCardsToFoundation(
     selectedCards,
     selectedSource,
     targetSuit
   );
-
-  if (success) clearSelection();
-  return success;
 }
 
 function moveCardsToTableau(cards, source, targetColIndex) {
-  if (!cards || cards.length === 0 || !source || gameWon) return false;
+  if (!cards || cards.length === 0 || !source || gameWon) {
+    return false;
+  }
 
-  if (source.type === 'tableau' && source.colIndex === targetColIndex) {
+  if (!sourceContainsCards(cards, source)) {
+    clearInteractionState();
+    return false;
+  }
+
+  if (
+    source.type === 'tableau' &&
+    source.colIndex === targetColIndex
+  ) {
     return false;
   }
 
@@ -484,18 +626,29 @@ function moveCardsToTableau(cards, source, targetColIndex) {
 
   const flipped = checkTableauFlip();
   let points = source.type === 'foundation' ? -5 : 5;
+
   if (flipped) points += 5;
 
+  clearInteractionState();
   registerMove(points);
   render();
   checkWin();
+
   return true;
 }
 
 function moveCardsToFoundation(cards, source, targetSuit) {
-  if (cards.length !== 1 || !source || gameWon) return false;
+  if (!cards || cards.length !== 1 || !source || gameWon) {
+    return false;
+  }
+
+  if (!sourceContainsCards(cards, source)) {
+    clearInteractionState();
+    return false;
+  }
 
   const movingCard = cards[0];
+
   if (movingCard.suit !== targetSuit) return false;
 
   const targetFoundation = foundations[targetSuit];
@@ -512,20 +665,29 @@ function moveCardsToFoundation(cards, source, targetSuit) {
 
   const flipped = checkTableauFlip();
   let points = 10;
+
   if (flipped) points += 5;
 
+  clearInteractionState();
   registerMove(points);
   render();
   checkWin();
+
   return true;
 }
 
 function removeCardsFromSource(cards, source) {
   if (source.type === 'waste') {
     waste.pop();
-  } else if (source.type === 'tableau') {
+    return;
+  }
+
+  if (source.type === 'tableau') {
     tableau[source.colIndex].splice(source.cardIndex, cards.length);
-  } else if (source.type === 'foundation') {
+    return;
+  }
+
+  if (source.type === 'foundation') {
     foundations[source.suit].pop();
   }
 }
@@ -537,6 +699,7 @@ function checkTableauFlip() {
     if (col.length === 0) return;
 
     const topCard = col[col.length - 1];
+
     if (!topCard.faceUp) {
       topCard.faceUp = true;
       flipped = true;
@@ -547,8 +710,22 @@ function checkTableauFlip() {
 }
 
 function moveCardAutomaticallyToFoundation(card, source) {
-  if (!card || gameWon) return;
+  if (!card || !source || gameWon) return;
+
+  clearSelection();
   moveCardsToFoundation([card], source, card.suit);
+}
+
+function flashInvalid(element) {
+  if (!element) return;
+
+  element.classList.remove('invalid-move');
+  void element.offsetWidth;
+  element.classList.add('invalid-move');
+
+  setTimeout(() => {
+    element.classList.remove('invalid-move');
+  }, 260);
 }
 
 function checkWin() {
@@ -561,6 +738,8 @@ function checkWin() {
 
   gameWon = true;
   clearInterval(timerInterval);
+  timerInterval = null;
+  clearInteractionState();
 
   document.getElementById('final-time').textContent = formatTime(seconds);
   document.getElementById('final-moves').textContent = moves;
@@ -575,9 +754,14 @@ document.getElementById('restart-btn').addEventListener('click', initGame);
 document.getElementById('modal-restart-btn').addEventListener('click', initGame);
 
 let resizeTimer;
+
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(renderTableau, 150);
+
+  resizeTimer = setTimeout(() => {
+    clearInteractionState();
+    renderTableau();
+  }, 150);
 });
 
 initGame();
