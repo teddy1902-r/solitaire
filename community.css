@@ -108,9 +108,9 @@ body.community-locked .game-board {
 
 .leaderboard-row {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 72px 58px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   padding: 9px 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.055);
@@ -127,6 +127,19 @@ body.community-locked .game-board {
   text-align: center;
 }
 
+.leaderboard-main,
+.leaderboard-result {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.leaderboard-result {
+  align-items: flex-end;
+  text-align: right;
+}
+
 .leaderboard-name {
   overflow: hidden;
   font-weight: 700;
@@ -134,16 +147,17 @@ body.community-locked .game-board {
   white-space: nowrap;
 }
 
+.leaderboard-date,
+.leaderboard-meta {
+  color: #cbd5e1;
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .leaderboard-score {
   color: #86efac;
   font-weight: 800;
-  text-align: right;
-}
-
-.leaderboard-time {
-  color: #cbd5e1;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .community-empty {
@@ -240,6 +254,12 @@ body.community-locked .game-board {
   margin-top: 16px;
 }
 
+@media (max-width: 1100px) {
+  .game-header {
+    flex-wrap: wrap;
+  }
+}
+
 @media (max-width: 700px) {
   .player-tools {
     width: 100%;
@@ -255,9 +275,14 @@ body.community-locked .game-board {
   }
 
   .leaderboard-row {
-    grid-template-columns: 28px minmax(0, 1fr) 64px 52px;
+    grid-template-columns: 26px minmax(0, 1fr) auto;
     padding: 8px 7px;
     font-size: 0.74rem;
+  }
+
+  .leaderboard-date,
+  .leaderboard-meta {
+    font-size: 0.62rem;
   }
 
   .community-panel {
