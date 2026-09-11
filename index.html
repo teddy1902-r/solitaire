@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Solitaire Géocaching Premium</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="community.css">
 </head>
-<body>
+<body class="community-locked">
 
   <header class="game-header">
     <div class="brand">
@@ -32,6 +33,12 @@
         <span class="stat-label">Score</span>
         <span id="score-val" class="stat-value">0</span>
       </div>
+    </div>
+
+    <div class="player-tools">
+      <span id="player-chip" class="player-chip">👤 Identifiant requis</span>
+      <button id="leaderboard-btn" class="community-small-btn" type="button">🏆 Classement</button>
+      <button id="change-player-btn" class="community-small-btn" type="button">Changer</button>
     </div>
 
     <div class="controls">
@@ -65,19 +72,88 @@
     </div>
   </main>
 
+  <div id="player-gate" class="community-overlay" aria-modal="true" role="dialog">
+    <div class="community-panel">
+      <h2>🧭 Bienvenue, géocacheur !</h2>
+      <p class="community-intro">
+        Entre ton identifiant Geocaching pour commencer la partie.
+        Sans identifiant, le Solitaire ne démarre pas.
+      </p>
+
+      <form id="geo-login-form" class="geo-login-form">
+        <input
+          id="geo-pseudo"
+          name="pseudo"
+          type="text"
+          maxlength="40"
+          autocomplete="username"
+          placeholder="Ton pseudo Geocaching"
+          required
+        >
+        <button class="btn btn-primary" type="submit">Jouer</button>
+      </form>
+
+      <div id="geo-login-error" class="community-error" aria-live="polite"></div>
+
+      <p class="community-note">
+        Ton pseudo, ton score, ton temps, ton nombre de coups et la date de la partie
+        pourront apparaître dans le classement public de ce jeu. Aucun mot de passe
+        Geocaching n’est demandé.
+      </p>
+
+      <div class="community-divider"></div>
+      <h3>🏆 Meilleurs scores</h3>
+      <div id="login-leaderboard" class="leaderboard-list">
+        <div class="community-empty">Classement en cours de chargement…</div>
+      </div>
+      <div id="login-api-status" class="community-status"></div>
+    </div>
+  </div>
+
+  <div id="leaderboard-modal" class="community-overlay hidden" aria-modal="true" role="dialog">
+    <div class="community-panel">
+      <h2>🏆 Classement Solitaire</h2>
+      <p class="community-intro">
+        Classement : score le plus élevé, puis meilleur temps, puis moins de coups.
+      </p>
+      <div id="leaderboard-full" class="leaderboard-list">
+        <div class="community-empty">Classement en cours de chargement…</div>
+      </div>
+      <div id="leaderboard-api-status" class="community-status"></div>
+      <div class="community-close-row">
+        <button id="close-leaderboard-btn" class="btn btn-primary" type="button">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <div id="win-modal" class="modal hidden">
     <div class="modal-content">
       <h2>🎉 Victoire Parfaite ! 🎉</h2>
       <p>Vous avez résolu le Solitaire Géocaching !</p>
+
+      <div class="victory-community">
+        <p>Géocacheur : <strong id="final-player">—</strong></p>
+        <p>Date : <strong id="final-date">—</strong></p>
+      </div>
+
       <div class="final-stats">
         <p>Temps : <strong id="final-time">00:00</strong></p>
         <p>Coups : <strong id="final-moves">0</strong></p>
         <p>Score : <strong id="final-score">0</strong></p>
       </div>
+
+      <div id="result-save-status" class="result-save-status" aria-live="polite"></div>
+
+      <div id="certitude-box" class="certitude-box" hidden>
+        <span class="certitude-label">🔐 Mot à saisir sur Certitudes.org</span>
+        <strong id="certitude-word" class="certitude-word"></strong>
+      </div>
+
       <button id="modal-restart-btn" class="btn btn-primary">Rejouer</button>
     </div>
   </div>
 
   <script src="script.js"></script>
+  <script src="community.js"></script>
 </body>
 </html>
