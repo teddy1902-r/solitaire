@@ -1,1 +1,266 @@
-/* Styles communauté Solitaire Géocaching */
+/* Interface communauté : pseudo Geocaching, classement et résultat final */
+body.community-locked {
+  overflow: hidden;
+}
+
+body.community-locked .game-header,
+body.community-locked .game-board {
+  pointer-events: none;
+  filter: blur(4px);
+}
+
+.community-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(2, 18, 9, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.community-overlay.hidden {
+  display: none;
+}
+
+.community-panel {
+  width: min(100%, 560px);
+  max-height: min(92vh, 760px);
+  overflow: auto;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  background: #172033;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.community-panel h2,
+.community-panel h3 {
+  margin: 0 0 12px;
+}
+
+.community-intro {
+  color: #d1d5db;
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+.community-note {
+  margin: 12px 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.geo-login-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.geo-login-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 11px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  background: #fff;
+  color: #111827;
+  font-size: 1rem;
+  outline: none;
+}
+
+.geo-login-form input:focus {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18);
+}
+
+.community-error {
+  min-height: 1.3em;
+  margin-bottom: 8px;
+  color: #fca5a5;
+  font-size: 0.84rem;
+}
+
+.community-status {
+  min-height: 1.3em;
+  color: #cbd5e1;
+  font-size: 0.82rem;
+}
+
+.community-divider {
+  height: 1px;
+  margin: 18px 0;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.leaderboard-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 72px 58px;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.055);
+  font-size: 0.82rem;
+}
+
+.leaderboard-row.me {
+  outline: 1px solid rgba(250, 204, 21, 0.72);
+  background: rgba(250, 204, 21, 0.09);
+}
+
+.leaderboard-rank {
+  font-weight: 800;
+  text-align: center;
+}
+
+.leaderboard-name {
+  overflow: hidden;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaderboard-score {
+  color: #86efac;
+  font-weight: 800;
+  text-align: right;
+}
+
+.leaderboard-time {
+  color: #cbd5e1;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.community-empty {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
+.player-tools {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.player-chip {
+  max-width: 170px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.community-small-btn {
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.community-small-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.victory-community {
+  margin-top: 14px;
+  padding: 13px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.victory-community p {
+  margin: 5px 0;
+}
+
+.certitude-box {
+  margin-top: 13px;
+  padding: 14px 10px;
+  border: 1px solid rgba(250, 204, 21, 0.46);
+  border-radius: 12px;
+  background: rgba(250, 204, 21, 0.09);
+}
+
+.certitude-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #fde68a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.certitude-word {
+  font-size: 1.45rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #fef08a;
+  word-break: break-word;
+}
+
+.result-save-status {
+  margin-top: 8px;
+  color: #cbd5e1;
+  font-size: 0.78rem;
+}
+
+#leaderboard-modal .community-panel {
+  width: min(100%, 620px);
+}
+
+.community-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+@media (max-width: 700px) {
+  .player-tools {
+    width: 100%;
+  }
+
+  .player-chip {
+    flex: 1;
+    max-width: none;
+  }
+
+  .geo-login-form {
+    flex-direction: column;
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 28px minmax(0, 1fr) 64px 52px;
+    padding: 8px 7px;
+    font-size: 0.74rem;
+  }
+
+  .community-panel {
+    padding: 18px 14px;
+  }
+}
