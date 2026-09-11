@@ -1,0 +1,526 @@
+:root {
+  --bg-gradient: radial-gradient(circle at center, #106332 0%, #073a1b 70%, #03210e 100%);
+  --card-width: 105px;
+  --card-height: 150px;
+  --card-radius: 10px;
+  --slot-border: rgba(255, 255, 255, 0.2);
+  --geo-green: #478700;
+  --geo-orange: #ff3b00;
+  --geo-blue: #0085ca;
+  --geo-yellow: #ffd100;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: #fff;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  -webkit-user-select: none;
+  overflow-x: hidden;
+  padding-bottom: 40px;
+}
+
+.game-header {
+  width: 95%;
+  max-width: 1050px;
+  margin: 15px 0 25px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.brand h1 span {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: #a3e635;
+}
+
+.mini-geo-logo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 3px;
+  border-radius: 6px;
+}
+
+.geo-sq { border-radius: 2px; }
+.geo-sq.green { background: var(--geo-green); }
+.geo-sq.orange { background: var(--geo-orange); }
+.geo-sq.blue { background: var(--geo-blue); }
+.geo-sq.yellow { background: var(--geo-yellow); }
+
+.stats-panel {
+  display: flex;
+  gap: 25px;
+}
+
+.stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 1px;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+
+.btn {
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #15803d);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.4);
+}
+
+.game-board {
+  width: 95%;
+  max-width: 1050px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.deck-area,
+.foundations,
+.tableau {
+  display: flex;
+  gap: 18px;
+}
+
+.card-slot {
+  width: var(--card-width);
+  height: var(--card-height);
+  flex-shrink: 0;
+  border: 2px dashed var(--slot-border);
+  border-radius: var(--card-radius);
+  position: relative;
+  background: rgba(0, 0, 0, 0.15);
+  transition: border-color 0.2s ease, background 0.2s ease;
+  touch-action: manipulation;
+}
+
+.foundation::before {
+  content: attr(data-icon);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.2rem;
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.tableau {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.column {
+  min-height: 480px;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
+}
+
+.card {
+  width: var(--card-width);
+  height: var(--card-height);
+  background-color: #fff;
+  border-radius: var(--card-radius);
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 8px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.card.red { color: #dc2626; }
+.card.black { color: #1e293b; }
+
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 0.9;
+}
+
+.card-corner.top { align-self: flex-start; }
+
+.card-corner.bottom {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.card-suit-large {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.5rem;
+  opacity: 0.85;
+}
+
+.card.face-down {
+  background: #111827;
+  border: 2px solid #374151;
+  padding: 0;
+  overflow: hidden;
+}
+
+.card.face-down:hover { transform: translateY(-2px); }
+
+.card-back-pattern {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px) 0 0 / 10px 10px,
+    linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border-radius: calc(var(--card-radius) - 2px);
+  position: relative;
+  border: 4px solid #1f2937;
+}
+
+.geo-back-logo {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.geo-back-logo .sq { border-radius: 3px; }
+.geo-back-logo .sq.g { background: var(--geo-green); }
+.geo-back-logo .sq.o { background: var(--geo-orange); }
+.geo-back-logo .sq.b { background: var(--geo-blue); }
+.geo-back-logo .sq.y { background: var(--geo-yellow); }
+
+.geo-back-text {
+  margin-top: 8px;
+  font-size: 0.6rem;
+  letter-spacing: 1.5px;
+  color: #9ca3af;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.card.selected {
+  outline: 4px solid #facc15;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.3), 0 8px 25px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+}
+
+.stock-reset {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: opacity 0.3s ease;
+  padding: 20px;
+}
+
+.modal.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-content {
+  background: #1e293b;
+  padding: 35px;
+  border-radius: 20px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  max-width: 400px;
+  width: 100%;
+}
+
+.modal-content h2 {
+  color: #4ade80;
+  margin-bottom: 10px;
+}
+
+.final-stats {
+  margin: 20px 0;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-around;
+  gap: 10px;
+}
+
+@media (max-width: 900px) {
+  :root {
+    --card-width: 85px;
+    --card-height: 122px;
+  }
+
+  .game-header,
+  .game-board { width: 97%; }
+
+  .deck-area,
+  .foundations,
+  .tableau { gap: 10px; }
+
+  .card { font-size: 1rem; }
+  .card-suit-large { font-size: 2rem; }
+  .geo-back-logo { width: 42px; height: 42px; }
+}
+
+@media (max-width: 700px) {
+  :root {
+    --card-width: calc((100vw - 34px) / 7);
+    --card-height: calc(var(--card-width) * 1.43);
+    --card-radius: 5px;
+  }
+
+  body { padding: 0 4px 30px; }
+
+  .game-header {
+    width: 100%;
+    margin: 6px 0 10px;
+    padding: 8px;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .brand { gap: 6px; }
+
+  .mini-geo-logo {
+    width: 23px;
+    height: 23px;
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .brand h1 { font-size: 0.95rem; }
+  .brand h1 span { font-size: 0.6rem; }
+
+  .stats-panel {
+    margin-left: auto;
+    gap: 10px;
+  }
+
+  .stat-label {
+    font-size: 0.5rem;
+    letter-spacing: 0.4px;
+  }
+
+  .stat-value { font-size: 0.85rem; }
+
+  .controls { width: 100%; }
+  .btn { padding: 7px 10px; font-size: 0.75rem; }
+  #restart-btn { width: 100%; }
+
+  .game-board {
+    width: 100%;
+    max-width: none;
+    padding: 0 4px;
+    gap: 14px;
+  }
+
+  .top-row {
+    width: 100%;
+    gap: 5px;
+  }
+
+  .deck-area,
+  .foundations { gap: 3px; }
+
+  .foundations { margin-left: auto; }
+
+  .tableau {
+    width: 100%;
+    gap: 3px;
+    justify-content: space-between;
+  }
+
+  .column {
+    min-height: 430px;
+    border-width: 1px;
+  }
+
+  .card-slot { border-width: 1px; }
+
+  .card {
+    padding: 3px;
+    font-size: clamp(0.55rem, 2.7vw, 0.82rem);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.35);
+  }
+
+  .card:hover { transform: none; }
+  .card-corner { line-height: 0.75; }
+  .card-suit-large { font-size: clamp(1rem, 5vw, 1.7rem); }
+  .foundation::before { font-size: clamp(1rem, 5vw, 1.8rem); }
+
+  .card-back-pattern {
+    border-width: 2px;
+    background:
+      radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px) 0 0 / 6px 6px,
+      linear-gradient(135deg, #1f2937, #111827);
+  }
+
+  .geo-back-logo {
+    width: calc(var(--card-width) * 0.48);
+    height: calc(var(--card-width) * 0.48);
+    max-width: 32px;
+    max-height: 32px;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 5px;
+  }
+
+  .geo-back-logo .sq { border-radius: 1px; }
+
+  .geo-back-text {
+    font-size: 0.3rem;
+    letter-spacing: 0.4px;
+    margin-top: 3px;
+  }
+
+  .card.selected {
+    outline: 2px solid #facc15;
+    outline-offset: 1px;
+    box-shadow: 0 0 8px rgba(250, 204, 21, 0.8);
+    z-index: 100;
+  }
+
+  .stock-reset { font-size: 1.8rem; }
+
+  .modal { padding: 12px; }
+
+  .modal-content {
+    padding: 22px 15px;
+    border-radius: 15px;
+  }
+
+  .modal-content h2 { font-size: 1.3rem; }
+  .modal-content p { font-size: 0.9rem; }
+
+  .final-stats {
+    padding: 10px 5px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  :root { --card-width: calc((100vw - 28px) / 7); }
+  .game-board { padding: 0 2px; }
+  .tableau,
+  .deck-area,
+  .foundations { gap: 2px; }
+  .brand h1 { font-size: 0.85rem; }
+  .brand h1 span { font-size: 0.53rem; }
+  .stats-panel { gap: 7px; }
+}
