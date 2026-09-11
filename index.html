@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solitaire Géocaching Premium</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="game-header">
+    <div class="brand">
+      <div class="mini-geo-logo">
+        <span class="geo-sq green"></span>
+        <span class="geo-sq orange"></span>
+        <span class="geo-sq blue"></span>
+        <span class="geo-sq yellow"></span>
+      </div>
+      <h1>Solitaire <span>Geocaching Edition</span></h1>
+    </div>
+
+    <div class="stats-panel">
+      <div class="stat-box">
+        <span class="stat-label">Temps</span>
+        <span id="timer-val" class="stat-value">00:00</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Coups</span>
+        <span id="moves-val" class="stat-value">0</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Score</span>
+        <span id="score-val" class="stat-value">0</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="restart-btn" class="btn btn-primary">🔄 Nouvelle Partie</button>
+    </div>
+  </header>
+
+  <main class="game-board">
+    <div class="top-row">
+      <div class="deck-area">
+        <div id="stock" class="card-slot stock-slot" title="Pioche"></div>
+        <div id="waste" class="card-slot waste-slot"></div>
+      </div>
+
+      <div class="foundations">
+        <div class="foundation card-slot" data-suit="♥" data-icon="♥"></div>
+        <div class="foundation card-slot" data-suit="♦" data-icon="♦"></div>
+        <div class="foundation card-slot" data-suit="♣" data-icon="♣"></div>
+        <div class="foundation card-slot" data-suit="♠" data-icon="♠"></div>
+      </div>
+    </div>
+
+    <div class="tableau">
+      <div class="column card-slot" data-col="0"></div>
+      <div class="column card-slot" data-col="1"></div>
+      <div class="column card-slot" data-col="2"></div>
+      <div class="column card-slot" data-col="3"></div>
+      <div class="column card-slot" data-col="4"></div>
+      <div class="column card-slot" data-col="5"></div>
+      <div class="column card-slot" data-col="6"></div>
+    </div>
+  </main>
+
+  <div id="win-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>🎉 Victoire Parfaite ! 🎉</h2>
+      <p>Vous avez résolu le Solitaire Géocaching !</p>
+      <div class="final-stats">
+        <p>Temps : <strong id="final-time">00:00</strong></p>
+        <p>Coups : <strong id="final-moves">0</strong></p>
+        <p>Score : <strong id="final-score">0</strong></p>
+      </div>
+      <button id="modal-restart-btn" class="btn btn-primary">Rejouer</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
