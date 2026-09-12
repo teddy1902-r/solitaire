@@ -15,6 +15,8 @@ const leaderboardModal = document.getElementById('leaderboard-modal');
 const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
 const loginLeaderboard = document.getElementById('login-leaderboard');
 const fullLeaderboard = document.getElementById('leaderboard-full');
+const victoryLeaderboard = document.getElementById('victory-leaderboard');
+const victoryRankingSection = document.getElementById('victory-ranking-section');
 const loginApiStatus = document.getElementById('login-api-status');
 const leaderboardApiStatus = document.getElementById('leaderboard-api-status');
 const finalPlayer = document.getElementById('final-player');
@@ -92,6 +94,8 @@ function resetVictoryCommunity() {
   resultSaveStatus.textContent = '';
   certitudeWord.textContent = '';
   certitudeBox.hidden = true;
+  victoryRankingSection.hidden = true;
+  victoryLeaderboard.innerHTML = '<div class="community-empty">Classement en cours de chargement…</div>';
   finalPlayer.textContent = currentPlayer || '—';
   finalDate.textContent = '—';
 }
@@ -201,12 +205,12 @@ async function loadLeaderboard(target = 'both') {
       container.innerHTML = '';
       const unavailable = document.createElement('div');
       unavailable.className = 'community-empty';
-      unavailable.textContent = 'Le classement sera disponible dès que le Worker Cloudflare sera activé.';
+      unavailable.textContent = 'Le classement est momentanément indisponible.';
       container.appendChild(unavailable);
     });
 
     statuses.forEach(el => {
-      el.textContent = 'Le jeu reste jouable, mais le classement partagé n’est pas encore connecté.';
+      el.textContent = 'Impossible de joindre le classement partagé pour le moment.';
     });
 
     return [];
@@ -225,6 +229,9 @@ async function submitVictory(result) {
   resultSaveStatus.textContent = 'Enregistrement du résultat…';
   certitudeWord.textContent = '';
   certitudeBox.hidden = true;
+
+  victoryRankingSection.hidden = false;
+  victoryLeaderboard.innerHTML = '<div class="community-empty">Classement en cours de chargement…</div>';
 
   try {
     const response = await fetch(`${SOLITAIRE_API_URL}/score`, {
@@ -263,56 +270,21 @@ async function submitVictory(result) {
     if (Array.isArray(data.leaderboard)) {
       renderLeaderboard(data.leaderboard, loginLeaderboard);
       renderLeaderboard(data.leaderboard, fullLeaderboard);
+      renderLeaderboard(data.leaderboard, victoryLeaderboard);
+    } else {
+      const entries = await loadLeaderboard('both');
+      renderLeaderboard(entries, victoryLeaderboard);
     }
   } catch (error) {
     resultSaveStatus.textContent =
-      '⚠️ Le résultat n’a pas pu être envoyé. Le Worker Cloudflare doit encore être activé.';
+      '⚠️ Le résultat n’a pas pu être envoyé au classement.';
+
+    victoryLeaderboard.innerHTML = '';
+    const unavailable = document.createElement('div');
+    unavailable.className = 'community-empty';
+    unavailable.textContent = 'Classement momentanément indisponible.';
+    victoryLeaderboard.appendChild(unavailable);
   }
-}
-
-function enableTemporaryVictoryTest() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('testwin') !== '1') return;
-
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = '🧪 Tester la victoire';
-  button.style.position = 'fixed';
-  button.style.right = '14px';
-  button.style.bottom = '14px';
-  button.style.zIndex = '5000';
-  button.style.padding = '12px 16px';
-  button.style.border = '0';
-  button.style.borderRadius = '12px';
-  button.style.background = '#facc15';
-  button.style.color = '#111827';
-  button.style.fontWeight = '800';
-  button.style.cursor = 'pointer';
-  button.style.boxShadow = '0 8px 24px rgba(0,0,0,.35)';
-
-  button.addEventListener('click', async () => {
-    if (!currentPlayer) {
-      showPlayerGate();
-      return;
-    }
-
-    const current = window.solitaireGame?.getResult?.() || {};
-    const result = {
-      score: Number.isInteger(current.score) && current.score > 0 ? current.score : 123,
-      seconds: Number.isInteger(current.seconds) && current.seconds > 0 ? current.seconds : 45,
-      moves: Number.isInteger(current.moves) && current.moves > 0 ? current.moves : 12,
-      finishedAt: new Date().toISOString()
-    };
-
-    document.getElementById('final-time').textContent = formatLeaderboardTime(result.seconds);
-    document.getElementById('final-moves').textContent = result.moves;
-    document.getElementById('final-score').textContent = result.score;
-    document.getElementById('win-modal').classList.remove('hidden');
-
-    await submitVictory(result);
-  });
-
-  document.body.appendChild(button);
 }
 
 loginForm.addEventListener('submit', event => {
@@ -378,4 +350,3 @@ if (rememberedPlayer) {
 
 showPlayerGate();
 loadLeaderboard('login');
-enableTemporaryVictoryTest();
