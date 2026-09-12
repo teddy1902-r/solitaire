@@ -1,0 +1,8 @@
+/* Correctif d'empilement des cartes Spider */
+.card.face-down {
+  position: absolute !important;
+}
+
+.stock-card {
+  position: relative !important;
+}
