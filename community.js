@@ -270,6 +270,51 @@ async function submitVictory(result) {
   }
 }
 
+function enableTemporaryVictoryTest() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('testwin') !== '1') return;
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.textContent = '🧪 Tester la victoire';
+  button.style.position = 'fixed';
+  button.style.right = '14px';
+  button.style.bottom = '14px';
+  button.style.zIndex = '5000';
+  button.style.padding = '12px 16px';
+  button.style.border = '0';
+  button.style.borderRadius = '12px';
+  button.style.background = '#facc15';
+  button.style.color = '#111827';
+  button.style.fontWeight = '800';
+  button.style.cursor = 'pointer';
+  button.style.boxShadow = '0 8px 24px rgba(0,0,0,.35)';
+
+  button.addEventListener('click', async () => {
+    if (!currentPlayer) {
+      showPlayerGate();
+      return;
+    }
+
+    const current = window.solitaireGame?.getResult?.() || {};
+    const result = {
+      score: Number.isInteger(current.score) && current.score > 0 ? current.score : 123,
+      seconds: Number.isInteger(current.seconds) && current.seconds > 0 ? current.seconds : 45,
+      moves: Number.isInteger(current.moves) && current.moves > 0 ? current.moves : 12,
+      finishedAt: new Date().toISOString()
+    };
+
+    document.getElementById('final-time').textContent = formatLeaderboardTime(result.seconds);
+    document.getElementById('final-moves').textContent = result.moves;
+    document.getElementById('final-score').textContent = result.score;
+    document.getElementById('win-modal').classList.remove('hidden');
+
+    await submitVictory(result);
+  });
+
+  document.body.appendChild(button);
+}
+
 loginForm.addEventListener('submit', event => {
   event.preventDefault();
 
@@ -333,3 +378,4 @@ if (rememberedPlayer) {
 
 showPlayerGate();
 loadLeaderboard('login');
+enableTemporaryVictoryTest();
