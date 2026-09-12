@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#07552d" />
   <title>Spider Solitaire Géocaching</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="fix.css" />
+  <link rel="stylesheet" href="style.css?v=20260912-2005" />
+  <link rel="stylesheet" href="fix.css?v=20260912-2005" />
 </head>
 <body>
   <header class="topbar">
@@ -144,7 +144,7 @@
   <script>
     const SPIDER_API_URL = "https://spider-solitaire-api.teddysegura-ts.workers.dev";
 
-    fetch("script.js")
+    fetch("script.js?v=20260912-2005")
       .then(response => {
         if (!response.ok) {
           throw new Error("Impossible de charger le jeu.");
