@@ -244,6 +244,33 @@ body.community-locked .game-board {
   font-size: 0.78rem;
 }
 
+.victory-ranking {
+  margin-top: 14px;
+  text-align: left;
+}
+
+.victory-ranking h3 {
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+.victory-ranking-note {
+  margin: 0 0 10px;
+  color: #cbd5e1;
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+#win-modal .modal-content {
+  width: min(94vw, 620px);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+#win-modal #modal-restart-btn {
+  margin-top: 16px;
+}
+
 #leaderboard-modal .community-panel {
   width: min(100%, 620px);
 }
@@ -287,5 +314,9 @@ body.community-locked .game-board {
 
   .community-panel {
     padding: 18px 14px;
+  }
+
+  #win-modal .modal-content {
+    padding: 18px 12px;
   }
 }
