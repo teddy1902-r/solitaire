@@ -9,9 +9,11 @@
   --gold: #ffd43b;
   --red: #d62828;
   --text: #ffffff;
+  --card-radius: 8px;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   min-height: 100%;
 }
@@ -88,7 +90,7 @@ button {
 .board {
   display: grid;
   grid-template-columns: repeat(10, minmax(0, 1fr));
-  gap: 7px;
+  gap: clamp(2px, 0.55vw, 8px);
   width: min(1200px, 100%);
   min-height: 650px;
   margin: 0 auto;
@@ -108,9 +110,13 @@ button {
   width: 100%;
   aspect-ratio: 0.70;
   max-width: 100px;
-  border: 2px dashed rgba(255, 255, 255, 0.25);
-  border-radius: 7px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: var(--card-radius);
 }
+
+/* =============================
+   CARTES FACE VISIBLE
+============================= */
 
 .card {
   position: absolute;
@@ -119,12 +125,13 @@ button {
   max-width: 100px;
   aspect-ratio: 0.70;
   padding: 5px;
-  border: 1px solid #a9a9a9;
-  border-radius: 7px;
-  background: white;
+  overflow: hidden;
+  border: 1px solid #aaa;
+  border-radius: var(--card-radius);
+  background: linear-gradient(145deg, #ffffff 0%, #f5f5f2 100%);
   color: #111;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.42);
-  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.44);
+  font-weight: 800;
   cursor: pointer;
   touch-action: manipulation;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
@@ -135,21 +142,109 @@ button {
 }
 
 .card.red {
-  color: var(--red);
+  color: #d71920;
 }
 
-.card.face-down {
+.card .rank {
+  position: absolute;
+  top: 5px;
+  left: 6px;
+  z-index: 3;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(11px, 1.7vw, 21px);
+  line-height: 1;
+  font-weight: 900;
+}
+
+/* Le vrai symbole de la couleur est placé au centre de la carte */
+.card .suit {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 4.6vw, 58px);
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Petit rappel de la couleur en bas à droite */
+.card:not(.face-down)::after {
+  content: "";
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.22;
+}
+
+/* =============================
+   DOS GÉOCACHING
+============================= */
+
+.card.face-down,
+.stock-card {
+  position: relative;
+  overflow: hidden;
   background:
-    linear-gradient(rgba(255,255,255,.08), rgba(255,255,255,.08)),
+    linear-gradient(rgba(2, 48, 27, 0.18), rgba(2, 48, 27, 0.18)),
     repeating-linear-gradient(
       45deg,
-      #2757b7 0,
-      #2757b7 7px,
-      #17397a 7px,
-      #17397a 14px
+      #0c6a3b 0,
+      #0c6a3b 8px,
+      #07532f 8px,
+      #07532f 16px
     );
-  border: 3px solid white;
+  border: 3px solid #f7f7f2;
   cursor: default;
+}
+
+/* Logo Géocaching stylisé en 4 couleurs, intégré au jeu sans image externe */
+.card.face-down::before,
+.stock-card::before {
+  content: "GC";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255,255,255,.95);
+  border-radius: 7px;
+  background:
+    conic-gradient(
+      from 0deg,
+      #1e88e5 0deg 90deg,
+      #f5a623 90deg 180deg,
+      #f4d03f 180deg 270deg,
+      #58a83b 270deg 360deg
+    );
+  color: white;
+  font-size: clamp(8px, 1.15vw, 16px);
+  font-weight: 900;
+  letter-spacing: -1px;
+  text-shadow: 0 1px 3px rgba(0,0,0,.55);
+  box-shadow: 0 2px 7px rgba(0,0,0,.35);
+}
+
+.card.face-down::after,
+.stock-card::after {
+  content: "GEOCACHING";
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  width: 92%;
+  text-align: center;
+  color: rgba(255,255,255,.92);
+  font-size: clamp(4px, .58vw, 8px);
+  font-weight: 900;
+  letter-spacing: .5px;
 }
 
 .card.selected {
@@ -158,19 +253,6 @@ button {
     0 0 0 3px var(--gold),
     0 8px 18px rgba(0, 0, 0, 0.58);
   z-index: 90 !important;
-}
-
-.rank,
-.suit {
-  line-height: 1.05;
-}
-
-.rank {
-  font-size: clamp(12px, 1.8vw, 20px);
-}
-
-.suit {
-  font-size: clamp(13px, 1.8vw, 20px);
 }
 
 .bottom-area {
@@ -192,17 +274,7 @@ button {
 .stock-card {
   width: 64px;
   height: 90px;
-  border: 3px solid white;
-  border-radius: 7px;
-  background:
-    linear-gradient(rgba(255,255,255,.08), rgba(255,255,255,.08)),
-    repeating-linear-gradient(
-      45deg,
-      #2757b7 0,
-      #2757b7 7px,
-      #17397a 7px,
-      #17397a 14px
-    );
+  border-radius: var(--card-radius);
   box-shadow: 0 3px 8px rgba(0,0,0,.5);
   cursor: pointer;
 }
@@ -472,95 +544,217 @@ button {
   display: none;
 }
 
-@media (max-width: 780px) {
+/* =============================
+   TABLETTE
+============================= */
+
+@media (max-width: 900px) {
   .topbar {
-    align-items: flex-start;
-    padding: 8px;
+    padding: 9px 10px;
   }
 
   .topbar h1 {
-    font-size: 17px;
-  }
-
-  .subtitle {
-    font-size: 10px;
-  }
-
-  .header-actions {
-    gap: 4px;
-  }
-
-  .secondary-btn {
-    padding: 7px 8px;
-    font-size: 11px;
+    font-size: 19px;
   }
 
   .player-bar {
-    grid-template-columns: repeat(5, 1fr);
-    gap: 2px;
-    padding: 5px 3px;
-    font-size: 9px;
-  }
-
-  .player-bar > div {
-    padding: 5px 2px;
-  }
-
-  .game {
-    padding: 3px;
+    gap: 3px;
+    padding: 6px;
+    font-size: 11px;
   }
 
   .board {
-    gap: 2px;
-    min-height: 620px;
+    gap: 3px;
   }
 
-  .column {
-    min-height: 610px;
+  .card .rank {
+    top: 3px;
+    left: 4px;
   }
+}
 
-  .card {
-    padding: 2px;
-    border-radius: 4px;
-  }
+/* =============================
+   TÉLÉPHONE
+============================= */
 
-  .rank,
-  .suit {
-    font-size: 9px;
-  }
-
-  .bottom-area {
-    padding: 0 5px;
+@media (max-width: 600px) {
+  .topbar {
     align-items: flex-start;
+    padding: 7px 6px;
   }
 
-  .stock-card {
-    width: 43px;
-    height: 61px;
+  .topbar h1 {
+    font-size: 16px;
   }
 
-  .stock-area {
+  .subtitle {
+    display: none;
+  }
+
+  .header-actions {
+    gap: 3px;
+  }
+
+  .secondary-btn {
+    padding: 6px 7px;
     font-size: 10px;
   }
 
-  .rule-note {
+  .player-bar {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    padding: 4px 2px;
+    font-size: 8px;
+  }
+
+  .player-bar > div {
+    min-width: 0;
+    padding: 5px 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .game {
+    padding: 2px;
+  }
+
+  .board {
+    gap: 1.5px;
+    min-height: 640px;
+  }
+
+  .column {
+    min-height: 630px;
+  }
+
+  .card {
+    padding: 1px;
+    border-radius: 4px;
+    border-width: 1px;
+  }
+
+  .card .rank {
+    top: 2px;
+    left: 2px;
+    font-size: clamp(7px, 2.35vw, 11px);
+  }
+
+  .card .suit {
+    font-size: clamp(15px, 6.2vw, 25px);
+  }
+
+  .card.face-down,
+  .stock-card {
+    border-width: 2px;
+  }
+
+  .card.face-down::before {
+    width: 57%;
+    border-width: 1px;
+    border-radius: 4px;
+    font-size: 6px;
+  }
+
+  .card.face-down::after {
+    display: none;
+  }
+
+  .bottom-area {
+    margin-top: 8px;
+    padding: 0 4px;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stock-card {
+    width: 46px;
+    height: 65px;
+  }
+
+  .stock-card::before {
+    width: 53%;
+    font-size: 8px;
+  }
+
+  .stock-card::after {
+    font-size: 5px;
+  }
+
+  .stock-area {
     font-size: 9px;
-    max-width: 180px;
+  }
+
+  .rule-note {
+    font-size: 8px;
+    max-width: 190px;
+  }
+
+  .message {
+    top: 78px;
+    font-size: 12px;
+  }
+
+  .overlay {
+    padding: 10px;
   }
 
   .modal-card {
-    padding: 18px;
+    width: min(96vw, 500px);
+    padding: 17px;
+    border-radius: 14px;
+  }
+
+  .big-icon {
+    font-size: 38px;
+  }
+
+  .modal-card h2 {
+    font-size: 23px;
   }
 
   .result-grid {
     gap: 5px;
   }
 
+  .result-box {
+    padding: 10px 4px;
+  }
+
   .result-box strong {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .leaderboard-table {
-    font-size: 11px;
+    font-size: 10px;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 8px 5px;
+  }
+}
+
+/* Très petit téléphone */
+@media (max-width: 390px) {
+  .topbar h1 {
+    font-size: 14px;
+  }
+
+  .secondary-btn {
+    font-size: 9px;
+    padding: 5px;
+  }
+
+  .player-bar {
+    font-size: 7px;
+  }
+
+  .card .rank {
+    font-size: 7px;
+  }
+
+  .card .suit {
+    font-size: 17px;
   }
 }
