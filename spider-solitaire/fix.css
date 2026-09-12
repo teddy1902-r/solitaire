@@ -1,8 +1,118 @@
-/* Correctif d'empilement des cartes Spider */
+/* Correctifs Spider Solitaire - mobile + empilement */
+
+/* Les cartes du plateau doivent toujours rester positionnées dans leur colonne. */
 .card.face-down {
   position: absolute !important;
 }
 
+/* Seule la pioche reste dans le flux normal. */
 .stock-card {
   position: relative !important;
+}
+
+/* Empêche un geste horizontal sur le plateau de zoomer ou sélectionner du texte. */
+.game,
+.board,
+.card {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 600px) {
+  /*
+    Dix cartes complètes sont trop étroites sur un écran de téléphone.
+    On conserve donc des cartes lisibles et on fait défiler le plateau
+    horizontalement avec le doigt.
+  */
+  .game {
+    width: 100%;
+    overflow-x: auto !important;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding: 4px 4px 12px !important;
+  }
+
+  .board {
+    width: 620px !important;
+    min-width: 620px !important;
+    max-width: none !important;
+    grid-template-columns: repeat(10, 58px) !important;
+    gap: 4px !important;
+    margin: 0 !important;
+    min-height: 650px !important;
+  }
+
+  .column {
+    width: 58px !important;
+    min-width: 58px !important;
+    min-height: 630px !important;
+  }
+
+  .card {
+    width: 58px !important;
+    max-width: 58px !important;
+    min-width: 58px !important;
+    border-radius: 5px !important;
+  }
+
+  /* Les symboles restent visibles sur une carte de 58 px. */
+  .corner-rank {
+    font-size: 11px !important;
+  }
+
+  .corner-suit {
+    font-size: 9px !important;
+  }
+
+  .pip {
+    font-size: 10px !important;
+  }
+
+  .pip.ace-pip {
+    font-size: 24px !important;
+  }
+
+  .court-icon {
+    font-size: 27px !important;
+  }
+
+  .court-name {
+    font-size: 9px !important;
+  }
+
+  .court-suit {
+    font-size: 11px !important;
+  }
+
+  /* La zone du bas suit la largeur du plateau et reste accessible au défilement. */
+  .bottom-area {
+    width: 620px !important;
+    min-width: 620px !important;
+    max-width: none !important;
+    margin-left: 0 !important;
+  }
+
+  .rule-note {
+    max-width: 330px !important;
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .board,
+  .bottom-area {
+    width: 600px !important;
+    min-width: 600px !important;
+  }
+
+  .board {
+    grid-template-columns: repeat(10, 56px) !important;
+  }
+
+  .column,
+  .card {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+  }
 }
