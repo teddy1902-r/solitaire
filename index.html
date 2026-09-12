@@ -127,31 +127,52 @@
   </div>
 
   <div id="win-modal" class="modal hidden">
-    <div class="modal-content">
-      <h2>🎉 Victoire Parfaite ! 🎉</h2>
-      <p>Vous avez résolu le Solitaire Géocaching !</p>
+    <div class="modal-content victory-modal-content">
+      <button id="close-win-btn" class="victory-close" type="button" aria-label="Fermer">×</button>
 
-      <div class="victory-community">
-        <p>Géocacheur : <strong id="final-player">—</strong></p>
-        <p>Date : <strong id="final-date">—</strong></p>
+      <div class="victory-confetti" aria-hidden="true">
+        <span>◆</span><span>◆</span><span>◆</span><span>◆</span>
+        <span>◆</span><span>◆</span><span>◆</span><span>◆</span>
       </div>
 
-      <div class="final-stats">
-        <p>Temps : <strong id="final-time">00:00</strong></p>
-        <p>Coups : <strong id="final-moves">0</strong></p>
-        <p>Score : <strong id="final-score">0</strong></p>
+      <div class="victory-title-block">
+        <h2>🏆 Bravo <span id="final-player">—</span> !</h2>
+        <p>Tu as terminé la partie avec succès !</p>
+      </div>
+
+      <div id="certitude-box" class="certitude-box victory-certitude" hidden>
+        <span class="certitude-label">Reporte ce mot sur certitudes.org :</span>
+        <strong id="certitude-word" class="certitude-word"></strong>
+      </div>
+
+      <div class="final-stats victory-stats">
+        <div class="victory-stat-card">
+          <span class="victory-stat-icon">⏱️</span>
+          <span class="victory-stat-label">Temps</span>
+          <strong id="final-time">00:00</strong>
+        </div>
+        <div class="victory-stat-card">
+          <span class="victory-stat-icon">🃏</span>
+          <span class="victory-stat-label">Coups</span>
+          <strong id="final-moves">0</strong>
+        </div>
+        <div class="victory-stat-card">
+          <span class="victory-stat-icon">⭐</span>
+          <span class="victory-stat-label">Score</span>
+          <strong id="final-score">0</strong>
+        </div>
+        <div class="victory-stat-card">
+          <span class="victory-stat-icon">📅</span>
+          <span class="victory-stat-label">Date</span>
+          <strong id="final-date">—</strong>
+        </div>
       </div>
 
       <div id="result-save-status" class="result-save-status" aria-live="polite"></div>
 
-      <div id="certitude-box" class="certitude-box" hidden>
-        <span class="certitude-label">🔐 Mot à saisir sur Certitudes.org</span>
-        <strong id="certitude-word" class="certitude-word"></strong>
-      </div>
-
       <div id="victory-ranking-section" class="victory-ranking" hidden>
         <div class="community-divider"></div>
-        <h3>🏆 Classement</h3>
+        <h3>🏆 Top 10 du classement</h3>
         <p class="victory-ranking-note">
           Score le plus élevé, puis meilleur temps, puis moins de coups.
         </p>
@@ -160,7 +181,12 @@
         </div>
       </div>
 
-      <button id="modal-restart-btn" class="btn btn-primary">Rejouer</button>
+      <div class="victory-actions">
+        <button id="modal-restart-btn" class="btn btn-primary">🔄 Nouvelle Partie</button>
+        <button id="victory-close-btn" class="btn victory-secondary-btn" type="button">🏆 Fermer</button>
+      </div>
+
+      <p class="victory-footer">Merci de jouer à Solitaire – Geocaching Edition ! 🌲</p>
     </div>
   </div>
 
