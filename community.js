@@ -13,6 +13,8 @@ const changePlayerBtn = document.getElementById('change-player-btn');
 const leaderboardBtn = document.getElementById('leaderboard-btn');
 const leaderboardModal = document.getElementById('leaderboard-modal');
 const closeLeaderboardBtn = document.getElementById('close-leaderboard-btn');
+const closeWinBtn = document.getElementById('close-win-btn');
+const victoryCloseBtn = document.getElementById('victory-close-btn');
 const loginLeaderboard = document.getElementById('login-leaderboard');
 const fullLeaderboard = document.getElementById('leaderboard-full');
 const victoryLeaderboard = document.getElementById('victory-leaderboard');
@@ -87,6 +89,10 @@ function showPlayerGate() {
 function hidePlayerGate() {
   playerGate.classList.add('hidden');
   document.body.classList.remove('community-locked');
+}
+
+function closeVictoryModal() {
+  document.getElementById('win-modal').classList.add('hidden');
 }
 
 function resetVictoryCommunity() {
@@ -326,6 +332,14 @@ leaderboardModal.addEventListener('click', event => {
     leaderboardModal.classList.add('hidden');
   }
 });
+
+if (closeWinBtn) {
+  closeWinBtn.addEventListener('click', closeVictoryModal);
+}
+
+if (victoryCloseBtn) {
+  victoryCloseBtn.addEventListener('click', closeVictoryModal);
+}
 
 window.addEventListener('solitaire-needs-player', showPlayerGate);
 
