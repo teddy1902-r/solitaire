@@ -30,7 +30,6 @@
 
   <main class="game">
     <div id="message" class="message" aria-live="polite"></div>
-
     <div id="board" class="board" aria-label="Plateau de Spider Solitaire"></div>
 
     <div class="bottom-area">
@@ -48,7 +47,6 @@
     </div>
   </main>
 
-  <!-- ÉCRAN DE DÉPART -->
   <div id="startScreen" class="overlay visible">
     <div class="modal-card start-card">
       <div class="big-icon">🕷️</div>
@@ -68,12 +66,10 @@
 
       <button id="startBtn" class="primary-btn" type="button">Commencer la partie</button>
       <button id="startLeaderboardBtn" class="link-btn" type="button">Voir le classement</button>
-
       <p id="startError" class="error-text"></p>
     </div>
   </div>
 
-  <!-- VICTOIRE -->
   <div id="winScreen" class="overlay">
     <div class="modal-card win-card">
       <div class="big-icon">🎉</div>
@@ -110,13 +106,12 @@
     </div>
   </div>
 
-  <!-- CLASSEMENT -->
   <div id="leaderboardScreen" class="overlay">
     <div class="modal-card leaderboard-card">
       <div class="modal-head">
         <div>
-          <h2>🏆 Meilleurs joueurs</h2>
-          <p class="muted">Classement par score, puis temps et nombre de coups.</p>
+          <h2>🏆 Top 10</h2>
+          <p class="muted">Classement des 10 meilleurs joueurs par score, puis temps et nombre de coups.</p>
         </div>
         <button id="closeLeaderboardBtn" class="close-btn" type="button" aria-label="Fermer">✕</button>
       </div>
@@ -145,6 +140,35 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script>
+    const SPIDER_API_URL = "https://spider-solidaire-api.teddysegura-ts.workers.dev";
+
+    fetch("script.js")
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Impossible de charger le jeu.");
+        }
+        return response.text();
+      })
+      .then(code => {
+        const connectedCode = code.replace(
+          "https://TON-WORKER.workers.dev",
+          SPIDER_API_URL
+        );
+
+        const blob = new Blob([connectedCode], {
+          type: "text/javascript"
+        });
+
+        const script = document.createElement("script");
+        script.src = URL.createObjectURL(blob);
+        document.body.appendChild(script);
+      })
+      .catch(error => {
+        console.error(error);
+        document.getElementById("startError").textContent =
+          "Erreur de chargement du jeu.";
+      });
+  </script>
 </body>
 </html>
