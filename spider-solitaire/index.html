@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#07552d" />
+  <title>Spider Solitaire Géocaching</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>🕷️ Spider Solitaire</h1>
+      <div class="subtitle">Édition Géocaching • 2 couleurs ♠ ♥</div>
+    </div>
+
+    <div class="header-actions">
+      <button id="leaderboardBtn" class="secondary-btn" type="button">🏆 Classement</button>
+      <button id="newGameBtn" class="secondary-btn" type="button">↻ Nouvelle partie</button>
+    </div>
+  </header>
+
+  <section class="player-bar">
+    <div>Joueur : <strong id="playerNameDisplay">—</strong></div>
+    <div>Temps : <strong id="timer">00:00</strong></div>
+    <div>Coups : <strong id="moves">0</strong></div>
+    <div>Suites : <strong id="completed">0</strong>/8</div>
+    <div>Score : <strong id="liveScore">100000</strong></div>
+  </section>
+
+  <main class="game">
+    <div id="message" class="message" aria-live="polite"></div>
+
+    <div id="board" class="board" aria-label="Plateau de Spider Solitaire"></div>
+
+    <div class="bottom-area">
+      <div class="stock-area">
+        <button id="stock" class="stock-card" type="button" aria-label="Distribuer 10 cartes"></button>
+        <div>
+          <div>Distributions restantes</div>
+          <strong id="deals">5</strong>
+        </div>
+      </div>
+
+      <div class="rule-note">
+        Déplace les suites décroissantes de même couleur. Une suite complète K → A disparaît automatiquement.
+      </div>
+    </div>
+  </main>
+
+  <!-- ÉCRAN DE DÉPART -->
+  <div id="startScreen" class="overlay visible">
+    <div class="modal-card start-card">
+      <div class="big-icon">🕷️</div>
+      <h2>Spider Solitaire Géocaching</h2>
+      <p class="muted">
+        Entre ton pseudo Géocaching pour commencer. Il sera utilisé dans le classement final.
+      </p>
+
+      <label for="playerName">Pseudo Géocaching</label>
+      <input
+        id="playerName"
+        type="text"
+        maxlength="30"
+        autocomplete="nickname"
+        placeholder="Ex. Teddy1902"
+      />
+
+      <button id="startBtn" class="primary-btn" type="button">Commencer la partie</button>
+      <button id="startLeaderboardBtn" class="link-btn" type="button">Voir le classement</button>
+
+      <p id="startError" class="error-text"></p>
+    </div>
+  </div>
+
+  <!-- VICTOIRE -->
+  <div id="winScreen" class="overlay">
+    <div class="modal-card win-card">
+      <div class="big-icon">🎉</div>
+      <h2>Bravo <span id="winnerName"></span> !</h2>
+      <p>Tu as terminé les 8 suites du Spider Solitaire.</p>
+
+      <div class="result-grid">
+        <div class="result-box">
+          <span>Score</span>
+          <strong id="finalScore">0</strong>
+        </div>
+        <div class="result-box">
+          <span>Temps</span>
+          <strong id="finalTime">00:00</strong>
+        </div>
+        <div class="result-box">
+          <span>Coups</span>
+          <strong id="finalMoves">0</strong>
+        </div>
+      </div>
+
+      <div class="secret-box">
+        <div class="secret-label">🔐 Mot secret pour Certitude</div>
+        <div id="secretWord" class="secret-word">Chargement…</div>
+        <p class="muted small">
+          Le mot secret est envoyé par le serveur uniquement après validation de la victoire.
+        </p>
+      </div>
+
+      <div id="submitStatus" class="status-text"></div>
+
+      <button id="winLeaderboardBtn" class="primary-btn" type="button">🏆 Voir le classement</button>
+      <button id="playAgainBtn" class="secondary-btn dark" type="button">Rejouer</button>
+    </div>
+  </div>
+
+  <!-- CLASSEMENT -->
+  <div id="leaderboardScreen" class="overlay">
+    <div class="modal-card leaderboard-card">
+      <div class="modal-head">
+        <div>
+          <h2>🏆 Meilleurs joueurs</h2>
+          <p class="muted">Classement par score, puis temps et nombre de coups.</p>
+        </div>
+        <button id="closeLeaderboardBtn" class="close-btn" type="button" aria-label="Fermer">✕</button>
+      </div>
+
+      <div id="leaderboardLoading" class="loading">Chargement du classement…</div>
+
+      <div class="leaderboard-wrap">
+        <table id="leaderboardTable" class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Joueur</th>
+              <th>Score</th>
+              <th>Temps</th>
+              <th>Coups</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+
+      <div id="leaderboardEmpty" class="empty-state">
+        Aucun score enregistré pour le moment.
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
