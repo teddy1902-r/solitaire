@@ -1,273 +1,249 @@
 /*
- * V4 — vrai mélange des 54 cartes visibles, avec solution garantie.
+ * V5 — correction du mélange visible.
  *
- * L'ancienne méthode mélangeait surtout le sommet des 104 cartes puis retirait
- * 50 cartes pour la pioche. Une grande partie du mélange partait donc dans le
- * talon et les colonnes visibles restaient presque K-Q-J-10-9-8.
- *
- * Ici on construit toujours la partie A L'ENVERS depuis un état résolu, mais on
- * alterne : mélange -> retrait d'une distribution -> mélange -> retrait...
- * puis on mélange encore les 54 cartes finales. En rejouant tous ces événements
- * à l'envers, on possède une solution complète de la partie.
+ * Objectif :
+ * - casser les longues suites visibles du type K-Q-J-10-9
+ * - garder une partie gagnable
+ * - éviter les colonnes qui se ressemblent trop
  */
 
-GUARANTEED_LEVELS[0].hiddenTarget = 12;
-GUARANTEED_LEVELS[1].hiddenTarget = 18;
-GUARANTEED_LEVELS[2].hiddenTarget = 24;
+const v5BaseBuildDeal = guaranteedBuildDeal;
 
-function realMixSettings(level) {
-  if (level.key === "easy") {
-    return { stageCycles: 7, finalCycles: 14, maxChunk: 3 };
-  }
-  if (level.key === "hard") {
-    return { stageCycles: 12, finalCycles: 24, maxChunk: 4 };
-  }
-  return { stageCycles: 9, finalCycles: 19, maxChunk: 4 };
+function v5CloneCandidate(candidate) {
+  return {
+    ...candidate,
+    columns: guaranteedCloneColumns(candidate.columns),
+    stock: candidate.stock.map(guaranteedCloneCard),
+    solutionEvents: Array.isArray(candidate.solutionEvents)
+      ? candidate.solutionEvents.map(event => ({ ...event }))
+      : undefined,
+    reverseMoves: Array.isArray(candidate.reverseMoves)
+      ? candidate.reverseMoves.map(move => ({ ...move }))
+      : undefined
+  };
 }
 
-function realScrambleStage(cols, wantedCycles, maxChunk, events) {
-  let current = cols;
-  let successes = 0;
-  let attempts = 0;
-  const maxAttempts = wantedCycles * 12 + 40;
+function v5IsNaturalVisiblePair(a, b) {
+  return (
+    a &&
+    b &&
+    a.faceUp &&
+    b.faceUp &&
+    a.suit === b.suit &&
+    VALUE_NUMBER[a.value] === VALUE_NUMBER[b.value] + 1
+  );
+}
 
-  while (successes < wantedCycles && attempts++ < maxAttempts) {
-    const cycle = guaranteedTryScrambleCycle(current, maxChunk);
-    if (!cycle) continue;
-
-    current = cycle.columns;
-    cycle.moves.forEach(move => {
-      events.push({
-        type: "move",
-        from: move.from,
-        to: move.to,
-        length: move.length
-      });
+function v5ResetAllFaceUp(candidate) {
+  candidate.columns.forEach(column => {
+    column.forEach(card => {
+      card.faceUp = true;
     });
-    successes++;
-  }
-
-  return current;
+  });
 }
 
-function realMixMetrics(cols) {
-  let broken = 0;
-  let suitChanges = 0;
-  let longestNatural = 1;
+function v5CollectRunBreakTargets(candidate) {
+  const targets = [];
 
-  cols.forEach(column => {
-    let currentNatural = column.length ? 1 : 0;
+  candidate.columns.forEach((column, columnIndex) => {
+    let runStart = -1;
+    let runLength = 1;
 
     for (let i = 0; i < column.length - 1; i++) {
-      const a = column[i];
-      const b = column[i + 1];
-      const natural =
-        a.suit === b.suit &&
-        VALUE_NUMBER[a.value] === VALUE_NUMBER[b.value] + 1;
+      const current = column[i];
+      const next = column[i + 1];
 
-      if (natural) {
-        currentNatural++;
+      if (v5IsNaturalVisiblePair(current, next)) {
+        if (runStart === -1) runStart = i;
+        runLength++;
       } else {
-        broken++;
-        currentNatural = 1;
+        if (runLength >= 3 && runStart !== -1) {
+          for (let j = runStart + 1; j < runStart + runLength - 1; j++) {
+            if (j < column.length - 1) {
+              targets.push({
+                columnIndex,
+                cardIndex: j,
+                priority: runLength
+              });
+            }
+          }
+        }
+        runStart = -1;
+        runLength = 1;
       }
+    }
 
-      if (a.suit !== b.suit) suitChanges++;
-      longestNatural = Math.max(longestNatural, currentNatural);
+    if (runLength >= 3 && runStart !== -1) {
+      for (let j = runStart + 1; j < runStart + runLength - 1; j++) {
+        if (j < column.length - 1) {
+          targets.push({
+            columnIndex,
+            cardIndex: j,
+            priority: runLength
+          });
+        }
+      }
     }
   });
 
-  return {
-    broken,
-    suitChanges,
-    longestNatural,
-    score: broken + suitChanges * 0.75
-  };
+  targets.sort((a, b) => b.priority - a.priority);
+  return targets;
 }
 
-function realBuildCandidate(level) {
-  const settings = realMixSettings(level);
-  let cols = guaranteedSolvedColumns();
-  const events = [];
-  const balanceMoves = [];
+function v5AddTargetedHiddenCards(candidate, targetHidden) {
+  let hidden = 0;
 
-  if (!guaranteedBalanceSolvedBoard(cols, balanceMoves)) return null;
+  v5ResetAllFaceUp(candidate);
 
-  balanceMoves.forEach(move => {
-    events.push({
-      type: "move",
-      from: move.from,
-      to: move.to,
-      length: move.length
-    });
-  });
+  const priorityTargets = v5CollectRunBreakTargets(candidate);
 
-  const expectedFull = [11,11,11,11,10,10,10,10,10,10];
-  if (!cols.every((column, index) => column.length === expectedFull[index])) {
-    return null;
+  for (const target of priorityTargets) {
+    if (hidden >= targetHidden) break;
+
+    const column = candidate.columns[target.columnIndex];
+    const card = column[target.cardIndex];
+    if (!card) continue;
+    if (target.cardIndex === column.length - 1) continue;
+    if (!card.faceUp) continue;
+
+    card.faceUp = false;
+
+    if (guaranteedSimulateSolution(candidate)) {
+      hidden++;
+    } else {
+      card.faceUp = true;
+    }
   }
 
-  const removedRounds = [];
+  const extraTargets = [];
+  candidate.columns.forEach((column, columnIndex) => {
+    for (let i = 0; i < column.length - 1; i++) {
+      extraTargets.push({ columnIndex, cardIndex: i });
+    }
+  });
 
-  for (let round = 0; round < 5; round++) {
-    cols = realScrambleStage(
-      cols,
-      settings.stageCycles,
-      settings.maxChunk,
-      events
-    );
+  guaranteedShuffle(extraTargets);
 
-    if (cols.some(column => column.length === 0)) return null;
+  for (const target of extraTargets) {
+    if (hidden >= targetHidden) break;
 
-    const removed = [];
-    for (let columnIndex = 0; columnIndex < 10; columnIndex++) {
-      const card = cols[columnIndex].pop();
-      if (!card) return null;
-      removed.push(card);
+    const column = candidate.columns[target.columnIndex];
+    const card = column[target.cardIndex];
+    if (!card || !card.faceUp) continue;
+    if (target.cardIndex === column.length - 1) continue;
+
+    card.faceUp = false;
+
+    if (guaranteedSimulateSolution(candidate)) {
+      hidden++;
+    } else {
+      card.faceUp = true;
+    }
+  }
+
+  return hidden;
+}
+
+function v5VisibleMetrics(columns) {
+  let longestNaturalRun = 1;
+  let brokenLinks = 0;
+  let suitChanges = 0;
+  let repeatedTopRanksPenalty = 0;
+
+  const topRankCount = {};
+
+  columns.forEach(column => {
+    if (!column.length) return;
+
+    const firstVisible = column.find(card => card.faceUp);
+    if (firstVisible) {
+      topRankCount[firstVisible.value] = (topRankCount[firstVisible.value] || 0) + 1;
     }
 
-    removedRounds.push(removed);
-    events.push({ type: "undeal" });
-  }
+    let currentRun = 0;
 
-  cols = realScrambleStage(
-    cols,
-    settings.finalCycles,
-    settings.maxChunk,
-    events
-  );
+    for (let i = 0; i < column.length; i++) {
+      if (!column[i].faceUp) {
+        currentRun = 0;
+        continue;
+      }
 
-  const expectedInitial = [6,6,6,6,5,5,5,5,5,5];
-  if (!cols.every((column, index) => column.length === expectedInitial[index])) {
-    return null;
-  }
-
-  const forwardPopSequence = removedRounds
-    .slice()
-    .reverse()
-    .flat();
-
-  const generatedStock = forwardPopSequence
-    .slice()
-    .reverse()
-    .map(card => ({ ...card, faceUp: false }));
-
-  cols.forEach(column => {
-    column.forEach(card => { card.faceUp = true; });
+      if (
+        i < column.length - 1 &&
+        v5IsNaturalVisiblePair(column[i], column[i + 1])
+      ) {
+        currentRun = currentRun === 0 ? 2 : currentRun + 1;
+        longestNaturalRun = Math.max(longestNaturalRun, currentRun);
+      } else {
+        if (
+          i < column.length - 1 &&
+          column[i].faceUp &&
+          column[i + 1].faceUp
+        ) {
+          brokenLinks++;
+          if (column[i].suit !== column[i + 1].suit) {
+            suitChanges++;
+          }
+        }
+        currentRun = 1;
+      }
+    }
   });
 
+  Object.values(topRankCount).forEach(count => {
+    if (count > 2) repeatedTopRanksPenalty += (count - 2);
+  });
+
+  const score =
+    brokenLinks * 2 +
+    suitChanges * 1.5 -
+    longestNaturalRun * 4 -
+    repeatedTopRanksPenalty * 5;
+
   return {
-    columns: cols,
-    stock: generatedStock,
-    solutionEvents: events
+    score,
+    longestNaturalRun,
+    repeatedTopRanksPenalty
   };
 }
 
-guaranteedSimulateSolution = function(candidate) {
-  if (!candidate || !Array.isArray(candidate.solutionEvents)) return false;
+guaranteedBuildDeal = function(level) {
+  let bestCandidate = null;
+  let bestMetrics = null;
 
-  const simColumns = guaranteedCloneColumns(candidate.columns);
-  const simStock = candidate.stock.map(guaranteedCloneCard);
-  const state = { completed: 0 };
+  const wantedHidden = Math.max(level.hiddenTarget || 12, 18);
 
-  for (let eventIndex = candidate.solutionEvents.length - 1;
-       eventIndex >= 0;
-       eventIndex--) {
-    const event = candidate.solutionEvents[eventIndex];
+  for (let attempt = 0; attempt < 35; attempt++) {
+    const rawCandidate = v5BaseBuildDeal(level);
+    if (!rawCandidate) continue;
 
-    if (event.type === "undeal") {
-      if (simStock.length < 10) return false;
-      if (simColumns.some(column => column.length === 0)) return false;
+    const candidate = v5CloneCandidate(rawCandidate);
 
-      for (let columnIndex = 0; columnIndex < 10; columnIndex++) {
-        const card = simStock.pop();
-        if (!card) return false;
-        card.faceUp = true;
-        simColumns[columnIndex].push(card);
-      }
+    v5ResetAllFaceUp(candidate);
+    candidate.hiddenCount = v5AddTargetedHiddenCards(candidate, wantedHidden);
 
-      guaranteedRemoveCompletedSim(simColumns, state);
+    if (!guaranteedSimulateSolution(candidate)) {
       continue;
     }
 
-    if (event.type !== "move") return false;
+    const metrics = v5VisibleMetrics(candidate.columns);
 
-    const from = event.to;
-    const to = event.from;
-    const length = event.length;
-    const source = simColumns[from];
-    const destination = simColumns[to];
-
-    if (!source || !destination || source.length < length) return false;
-
-    const moving = source.slice(source.length - length);
-    if (!moving.every(card => card.faceUp)) return false;
-    if (!guaranteedIsSameSuitRun(moving)) return false;
-
-    const firstMoving = moving[0];
-    if (destination.length) {
-      const destinationCard = destination[destination.length - 1];
-      if (!destinationCard.faceUp) return false;
-      if (
-        VALUE_NUMBER[destinationCard.value] !==
-        VALUE_NUMBER[firstMoving.value] + 1
-      ) return false;
+    if (!bestCandidate || metrics.score > bestMetrics.score) {
+      bestCandidate = v5CloneCandidate(candidate);
+      bestMetrics = metrics;
     }
 
-    source.splice(source.length - length, length);
-    destination.push(...moving);
-
-    if (source.length && !source[source.length - 1].faceUp) {
-      source[source.length - 1].faceUp = true;
+    if (
+      metrics.longestNaturalRun <= 2 &&
+      metrics.repeatedTopRanksPenalty <= 1
+    ) {
+      return candidate;
     }
-
-    guaranteedRemoveCompletedSim(simColumns, state);
   }
 
-  guaranteedRemoveCompletedSim(simColumns, state);
-
-  return (
-    state.completed === 8 &&
-    simStock.length === 0 &&
-    simColumns.every(column => column.length === 0)
-  );
-};
-
-guaranteedBuildDeal = function(level) {
-  let best = null;
-  let bestScore = -Infinity;
-
-  for (let attempt = 0; attempt < 55; attempt++) {
-    const candidate = realBuildCandidate(level);
-    if (!candidate) continue;
-    if (!guaranteedSimulateSolution(candidate)) continue;
-
-    const metrics = realMixMetrics(candidate.columns);
-    if (metrics.score > bestScore) {
-      best = candidate;
-      bestScore = metrics.score;
-    }
-
-    if (metrics.broken < 24 || metrics.longestNatural > 3) continue;
-
-    candidate.hiddenCount = guaranteedAddHiddenCards(
-      candidate,
-      level.hiddenTarget
-    );
-
-    if (guaranteedSimulateSolution(candidate)) return candidate;
+  if (bestCandidate) {
+    return bestCandidate;
   }
 
-  if (!best) {
-    throw new Error("Impossible de générer une partie gagnable.");
-  }
-
-  best.hiddenCount = guaranteedAddHiddenCards(best, level.hiddenTarget);
-  if (!guaranteedSimulateSolution(best)) {
-    best.columns.forEach(column => {
-      column.forEach(card => { card.faceUp = true; });
-    });
-  }
-
-  return best;
+  return v5BaseBuildDeal(level);
 };
