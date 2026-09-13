@@ -37,6 +37,7 @@ let finished = false;
 let playerName = "";
 let gameId = null;
 let messageTimeout = null;
+let currentDifficulty = "Moyenne";
 
 const board = document.getElementById("board");
 const stockButton = document.getElementById("stock");
@@ -100,18 +101,6 @@ async function startGameFromPseudo(){
   finally{startBtn.disabled=false; startBtn.textContent="Commencer la partie";}
 }
 
-function createDeck(){
-  const deck=[];
-  SUITS.forEach(suit=>{
-    for(let copy=0;copy<4;copy++){
-      VALUES.forEach(value=>deck.push({
-        value,suit,faceUp:false,
-        id:Date.now()+"-"+Math.random().toString(36).slice(2)
-      }));
-    }
-  });
-  return shuffle(deck);
-}
 function shuffle(array){
   for(let i=array.length-1;i>0;i--){
     const j=Math.floor(Math.random()*(i+1));
@@ -119,6 +108,99 @@ function shuffle(array){
   }
   return array;
 }
+
+function makeCard(value,suit,runId){
+  return {
+    value,
+    suit,
+    faceUp:true,
+    runId,
+    id:`${runId}-${value}-${Math.random().toString(36).slice(2)}`
+  };
+}
+
+function createRun(suit,copy){
+  const runId=`${suit}-${copy}-${Math.random().toString(36).slice(2)}`;
+  return [...VALUES].reverse().map(value=>makeCard(value,suit,runId));
+}
+
+function chooseDifficulty(){
+  const roll=Math.random();
+  if(roll<0.34) return {name:"Facile",splitCount:2};
+  if(roll<0.67) return {name:"Moyenne",splitCount:3};
+  return {name:"Difficile",splitCount:4};
+}
+
+function createGuaranteedDeal(){
+  const difficulty=chooseDifficulty();
+  currentDifficulty=difficulty.name;
+
+  const runs=[];
+  SUITS.forEach(suit=>{
+    for(let copy=0;copy<4;copy++) runs.push(createRun(suit,copy));
+  });
+  shuffle(runs);
+
+  const targetColumns=[];
+  const fragments=[];
+
+  runs.forEach((run,index)=>{
+    if(index<difficulty.splitCount){
+      const cut=Math.random()<0.5?6:7;
+      fragments.push({runId:run[0].runId,cards:run.slice(0,cut)});
+      fragments.push({runId:run[0].runId,cards:run.slice(cut)});
+    }else{
+      targetColumns.push(run.slice());
+    }
+  });
+
+  shuffle(fragments);
+
+  const stacksNeeded=difficulty.splitCount-2;
+  for(let s=0;s<stacksNeeded;s++){
+    let firstIndex=-1;
+    let secondIndex=-1;
+    outer:
+    for(let i=0;i<fragments.length;i++){
+      for(let j=i+1;j<fragments.length;j++){
+        if(fragments[i].runId!==fragments[j].runId){
+          firstIndex=i;
+          secondIndex=j;
+          break outer;
+        }
+      }
+    }
+    if(firstIndex<0) break;
+    const second=fragments.splice(secondIndex,1)[0];
+    const first=fragments.splice(firstIndex,1)[0];
+    targetColumns.push([...first.cards,...second.cards]);
+  }
+
+  fragments.forEach(fragment=>targetColumns.push(fragment.cards.slice()));
+  shuffle(targetColumns);
+
+  // À ce stade il y a toujours exactement 10 colonnes et chacune possède
+  // au moins 6 cartes. On remonte ensuite cinq distributions de 10 cartes.
+  // Rejouer les cinq distributions reconstruit donc un état dont on connaît
+  // explicitement la solution.
+  const initialColumns=targetColumns.map(column=>column.slice());
+  const removedRounds=[];
+
+  for(let round=0;round<5;round++){
+    removedRounds.push(initialColumns.map(column=>column.pop()));
+  }
+
+  const forwardDealOrder=removedRounds.reverse().flat();
+  const guaranteedStock=forwardDealOrder.reverse();
+
+  initialColumns.forEach(column=>{
+    column.forEach(card=>card.faceUp=true);
+  });
+  guaranteedStock.forEach(card=>card.faceUp=false);
+
+  return {columns:initialColumns,stock:guaranteedStock};
+}
+
 async function newGame(requestNewServerGame=true){
   clearInterval(timerInterval); winScreen.classList.remove("visible");
   if(requestNewServerGame){
@@ -126,21 +208,16 @@ async function newGame(requestNewServerGame=true){
     try{await createServerGame();}
     catch{showMessage("Impossible de démarrer une nouvelle partie.");return;}
   }
-  const deck=createDeck();
-  columns=Array.from({length:10},()=>[]);
-  for(let col=0;col<10;col++){
-    const amount=col<4?6:5;
-    for(let i=0;i<amount;i++){
-      const card=deck.pop();
-      if(i===amount-1) card.faceUp=true;
-      columns[col].push(card);
-    }
-  }
-  stock=deck; selectedColumn=null; selectedIndex=null;
+
+  const guaranteed=createGuaranteedDeal();
+  columns=guaranteed.columns;
+  stock=guaranteed.stock;
+  selectedColumn=null; selectedIndex=null;
   moves=0; completed=0; seconds=0; started=true; finished=false;
   updateTimer(); updateStats();
   timerInterval=setInterval(()=>{if(!finished){seconds++;updateTimer();updateStats();}},1000);
   render();
+  setTimeout(()=>showMessage(`✅ Partie gagnable • difficulté ${currentDifficulty}`),150);
 }
 
 function cornerHTML(card, bottom=false){
