@@ -4,9 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#07552d" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Spider Solitaire Géocaching</title>
-  <link rel="stylesheet" href="style.css?v=20260912-2005" />
-  <link rel="stylesheet" href="fix.css?v=20260912-2005" />
+  <link rel="stylesheet" href="style.css?v=20260913-1538" />
+  <link rel="stylesheet" href="fix.css?v=20260913-1538" />
 </head>
 <body>
   <header class="topbar">
@@ -144,11 +147,12 @@
   <script>
     const SPIDER_API_URL = "https://spider-solitaire-api.teddysegura-ts.workers.dev";
     const startButton = document.getElementById("startBtn");
+    const cacheBust = Date.now();
 
     startButton.disabled = true;
     startButton.textContent = "Chargement…";
 
-    fetch("script.js?v=20260912-2005")
+    fetch(`script.js?v=${cacheBust}`, { cache: "no-store" })
       .then(response => {
         if (!response.ok) {
           throw new Error("Impossible de charger le jeu.");
@@ -170,9 +174,17 @@
 
         script.onload = () => {
           const guaranteedScript = document.createElement("script");
-          guaranteedScript.src = "guaranteed.js?v=20260913-1319";
+          guaranteedScript.src = `guaranteed.js?v=${cacheBust}`;
 
           guaranteedScript.onload = () => {
+            const originalShowMessage = window.showMessage;
+            window.showMessage = function(text) {
+              if (typeof text === "string" && text.includes("Difficulté")) {
+                return;
+              }
+              return originalShowMessage(text);
+            };
+
             startButton.disabled = false;
             startButton.textContent = "Commencer la partie";
           };
