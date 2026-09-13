@@ -359,7 +359,7 @@ async function newGame(requestNewServerGame=true){
   updateTimer(); updateStats();
   timerInterval=setInterval(()=>{if(!finished){seconds++;updateTimer();updateStats();}},1000);
   render();
-  setTimeout(()=>showMessage(`✅ Partie gagnable • ${currentDifficulty} • cartes mélangées`),150);
+  setTimeout(()=>showMessage("✅ Partie gagnable • cartes mélangées"),150);
 }
 
 function cornerHTML(card, bottom=false){
