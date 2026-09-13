@@ -1,5 +1,6 @@
 const SOLITAIRE_API_URL = 'https://solitaire-scores.teddysegura-ts.workers.dev';
 const PLAYER_STORAGE_KEY = 'solitaireGeocachingPseudo';
+const HIDDEN_LEADERBOARD_PSEUDOS = new Set(['teddytest']);
 
 let currentPlayer = '';
 let lastSubmittedVictory = '';
@@ -155,7 +156,14 @@ function createLeaderboardRow(entry, index) {
 function renderLeaderboard(entries, container) {
   container.innerHTML = '';
 
-  if (!Array.isArray(entries) || entries.length === 0) {
+  const visibleEntries = Array.isArray(entries)
+    ? entries.filter(entry => {
+        const pseudo = String(entry?.pseudo || '').trim().toLocaleLowerCase('fr-FR');
+        return !HIDDEN_LEADERBOARD_PSEUDOS.has(pseudo);
+      })
+    : [];
+
+  if (visibleEntries.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'community-empty';
     empty.textContent = 'Aucun score enregistré pour le moment.';
@@ -163,7 +171,7 @@ function renderLeaderboard(entries, container) {
     return;
   }
 
-  entries.forEach((entry, index) => {
+  visibleEntries.forEach((entry, index) => {
     container.appendChild(createLeaderboardRow(entry, index));
   });
 }
