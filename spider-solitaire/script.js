@@ -109,6 +109,10 @@ function shuffle(array){
   return array;
 }
 
+function randomInt(min,max){
+  return Math.floor(Math.random()*(max-min+1))+min;
+}
+
 function makeCard(value,suit,runId){
   return {
     value,
@@ -126,63 +130,111 @@ function createRun(suit,copy){
 
 function chooseDifficulty(){
   const roll=Math.random();
-  if(roll<0.34) return {name:"Facile",splitCount:2};
-  if(roll<0.67) return {name:"Moyenne",splitCount:3};
-  return {name:"Difficile",splitCount:4};
+  if(roll<0.34){
+    return {name:"Facile",leaveMin:6,leaveMax:8,chunkMin:3,chunkMax:5};
+  }
+  if(roll<0.67){
+    return {name:"Moyenne",leaveMin:4,leaveMax:6,chunkMin:2,chunkMax:4};
+  }
+  return {name:"Difficile",leaveMin:2,leaveMax:4,chunkMin:1,chunkMax:3};
 }
 
-function createGuaranteedDeal(){
-  const difficulty=chooseDifficulty();
-  currentDifficulty=difficulty.name;
+function isDescendingSameSuit(cards){
+  if(!cards.length) return false;
+  for(let i=0;i<cards.length-1;i++){
+    if(cards[i].suit!==cards[i+1].suit) return false;
+    if(VALUE_NUMBER[cards[i].value]!==VALUE_NUMBER[cards[i+1].value]+1) return false;
+  }
+  return true;
+}
 
+function columnContainsCompleteRun(column){
+  if(column.length<13) return false;
+  for(let start=0;start<=column.length-13;start++){
+    const sequence=column.slice(start,start+13);
+    if(sequence[0].value!=="K"||sequence[12].value!=="A") continue;
+    if(isDescendingSameSuit(sequence)) return true;
+  }
+  return false;
+}
+
+function chooseScrambleDestination(targetColumns,sourceIndex,movingCards){
+  const destinationIndexes=[...Array(sourceIndex).keys(),8,9];
+  let bestIndex=null;
+  let bestScore=-Infinity;
+
+  destinationIndexes.forEach(destinationIndex=>{
+    const destination=targetColumns[destinationIndex];
+    const trial=[...destination,...movingCards];
+    if(columnContainsCompleteRun(trial)) return;
+
+    const top=destination[destination.length-1];
+    const first=movingCards[0];
+    const looksMixed=!top || top.suit!==first.suit ||
+      VALUE_NUMBER[top.value]!==VALUE_NUMBER[first.value]+1;
+    const deficit=Math.max(0,6-destination.length);
+    const score=deficit*20+(looksMixed?5:0)-destination.length*0.2+Math.random();
+
+    if(score>bestScore){
+      bestScore=score;
+      bestIndex=destinationIndex;
+    }
+  });
+
+  return bestIndex;
+}
+
+function buildMixedGuaranteedCandidate(difficulty){
   const runs=[];
   SUITS.forEach(suit=>{
     for(let copy=0;copy<4;copy++) runs.push(createRun(suit,copy));
   });
   shuffle(runs);
 
-  const targetColumns=[];
-  const fragments=[];
+  const targetColumns=Array.from({length:10},()=>[]);
+  runs.forEach((run,index)=>{targetColumns[index]=run.slice();});
 
-  runs.forEach((run,index)=>{
-    if(index<difficulty.splitCount){
-      const cut=Math.random()<0.5?6:7;
-      fragments.push({runId:run[0].runId,cards:run.slice(0,cut)});
-      fragments.push({runId:run[0].runId,cards:run.slice(cut)});
-    }else{
-      targetColumns.push(run.slice());
+  // On part de 8 suites complètes puis on les démonte morceau par morceau.
+  // Chaque démontage est l'inverse exact d'un coup légal : en rejouant les
+  // étapes à l'envers, la partie possède donc forcément une solution.
+  const solutionSteps=[];
+
+  for(let sourceIndex=0;sourceIndex<8;sourceIndex++){
+    const leaveCount=sourceIndex===7
+      ? randomInt(6,8)
+      : randomInt(difficulty.leaveMin,difficulty.leaveMax);
+
+    while(targetColumns[sourceIndex].length>leaveCount){
+      const remaining=targetColumns[sourceIndex].length-leaveCount;
+      const chunkSize=Math.min(
+        randomInt(difficulty.chunkMin,difficulty.chunkMax),
+        remaining
+      );
+      const cutIndex=targetColumns[sourceIndex].length-chunkSize;
+      const movingCards=targetColumns[sourceIndex].slice(cutIndex);
+      const destinationIndex=chooseScrambleDestination(
+        targetColumns,
+        sourceIndex,
+        movingCards
+      );
+
+      if(destinationIndex===null) return null;
+
+      targetColumns[sourceIndex].splice(cutIndex);
+      targetColumns[destinationIndex].push(...movingCards);
+      solutionSteps.push({
+        from:destinationIndex,
+        to:sourceIndex,
+        count:movingCards.length
+      });
     }
-  });
-
-  shuffle(fragments);
-
-  const stacksNeeded=difficulty.splitCount-2;
-  for(let s=0;s<stacksNeeded;s++){
-    let firstIndex=-1;
-    let secondIndex=-1;
-    outer:
-    for(let i=0;i<fragments.length;i++){
-      for(let j=i+1;j<fragments.length;j++){
-        if(fragments[i].runId!==fragments[j].runId){
-          firstIndex=i;
-          secondIndex=j;
-          break outer;
-        }
-      }
-    }
-    if(firstIndex<0) break;
-    const second=fragments.splice(secondIndex,1)[0];
-    const first=fragments.splice(firstIndex,1)[0];
-    targetColumns.push([...first.cards,...second.cards]);
   }
 
-  fragments.forEach(fragment=>targetColumns.push(fragment.cards.slice()));
-  shuffle(targetColumns);
+  // Il faut au moins 6 cartes dans chaque colonne cible : après avoir retiré
+  // les 5 distributions de la pioche, aucune colonne de départ n'est vide.
+  if(targetColumns.some(column=>column.length<6)) return null;
+  if(targetColumns.some(column=>columnContainsCompleteRun(column))) return null;
 
-  // À ce stade il y a toujours exactement 10 colonnes et chacune possède
-  // au moins 6 cartes. On remonte ensuite cinq distributions de 10 cartes.
-  // Rejouer les cinq distributions reconstruit donc un état dont on connaît
-  // explicitement la solution.
   const initialColumns=targetColumns.map(column=>column.slice());
   const removedRounds=[];
 
@@ -190,15 +242,98 @@ function createGuaranteedDeal(){
     removedRounds.push(initialColumns.map(column=>column.pop()));
   }
 
-  const forwardDealOrder=removedRounds.reverse().flat();
-  const guaranteedStock=forwardDealOrder.reverse();
+  const forwardDealOrder=removedRounds.slice().reverse().flat();
+  const guaranteedStock=forwardDealOrder.slice().reverse();
 
-  initialColumns.forEach(column=>{
-    column.forEach(card=>card.faceUp=true);
-  });
-  guaranteedStock.forEach(card=>card.faceUp=false);
+  initialColumns.forEach(column=>column.forEach(card=>{card.faceUp=true;}));
+  guaranteedStock.forEach(card=>{card.faceUp=false;});
 
-  return {columns:initialColumns,stock:guaranteedStock};
+  return {
+    columns:initialColumns,
+    stock:guaranteedStock,
+    solutionSteps
+  };
+}
+
+function modelRemoveCompletedSequences(modelColumns){
+  let removed=0;
+  let found=true;
+
+  while(found){
+    found=false;
+    for(let columnIndex=0;columnIndex<10;columnIndex++){
+      const column=modelColumns[columnIndex];
+      if(column.length<13) continue;
+      const sequence=column.slice(-13);
+      if(sequence[0].value!=="K"||sequence[12].value!=="A") continue;
+      if(!isDescendingSameSuit(sequence)) continue;
+      column.splice(-13);
+      removed++;
+      found=true;
+      break;
+    }
+  }
+
+  return removed;
+}
+
+function validateGuaranteedCandidate(candidate){
+  const modelColumns=candidate.columns.map(column=>column.slice());
+  const modelStock=candidate.stock.slice();
+  let modelCompleted=0;
+
+  // Les cinq distributions doivent pouvoir être rejouées sans blocage.
+  for(let round=0;round<5;round++){
+    if(modelColumns.some(column=>column.length===0)) return false;
+    for(let columnIndex=0;columnIndex<10;columnIndex++){
+      const card=modelStock.pop();
+      if(!card) return false;
+      modelColumns[columnIndex].push(card);
+    }
+    // Une suite ne doit pas disparaître prématurément pendant la pioche.
+    if(modelRemoveCompletedSequences(modelColumns)>0) return false;
+  }
+
+  // On rejoue à l'envers les étapes utilisées pour mélanger les cartes.
+  for(let i=candidate.solutionSteps.length-1;i>=0;i--){
+    const step=candidate.solutionSteps[i];
+    const source=modelColumns[step.from];
+    const destination=modelColumns[step.to];
+    if(source.length<step.count) return false;
+
+    const fromIndex=source.length-step.count;
+    const movingCards=source.slice(fromIndex);
+    if(!isDescendingSameSuit(movingCards)) return false;
+
+    const firstMoving=movingCards[0];
+    if(destination.length){
+      const destinationCard=destination[destination.length-1];
+      if(VALUE_NUMBER[destinationCard.value]!==VALUE_NUMBER[firstMoving.value]+1){
+        return false;
+      }
+    }
+
+    source.splice(fromIndex);
+    destination.push(...movingCards);
+    modelCompleted+=modelRemoveCompletedSequences(modelColumns);
+  }
+
+  modelCompleted+=modelRemoveCompletedSequences(modelColumns);
+  return modelCompleted===8 && modelColumns.every(column=>column.length===0);
+}
+
+function createGuaranteedDeal(){
+  const difficulty=chooseDifficulty();
+  currentDifficulty=difficulty.name;
+
+  for(let attempt=0;attempt<100;attempt++){
+    const candidate=buildMixedGuaranteedCandidate(difficulty);
+    if(candidate&&validateGuaranteedCandidate(candidate)){
+      return {columns:candidate.columns,stock:candidate.stock};
+    }
+  }
+
+  throw new Error("Impossible de générer une partie gagnable.");
 }
 
 async function newGame(requestNewServerGame=true){
@@ -209,7 +344,14 @@ async function newGame(requestNewServerGame=true){
     catch{showMessage("Impossible de démarrer une nouvelle partie.");return;}
   }
 
-  const guaranteed=createGuaranteedDeal();
+  let guaranteed;
+  try{
+    guaranteed=createGuaranteedDeal();
+  }catch(error){
+    showMessage(error.message);
+    return;
+  }
+
   columns=guaranteed.columns;
   stock=guaranteed.stock;
   selectedColumn=null; selectedIndex=null;
@@ -217,7 +359,7 @@ async function newGame(requestNewServerGame=true){
   updateTimer(); updateStats();
   timerInterval=setInterval(()=>{if(!finished){seconds++;updateTimer();updateStats();}},1000);
   render();
-  setTimeout(()=>showMessage(`✅ Partie gagnable • difficulté ${currentDifficulty}`),150);
+  setTimeout(()=>showMessage(`✅ Partie gagnable • ${currentDifficulty} • cartes mélangées`),150);
 }
 
 function cornerHTML(card, bottom=false){
