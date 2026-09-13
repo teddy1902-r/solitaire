@@ -143,6 +143,10 @@
 
   <script>
     const SPIDER_API_URL = "https://spider-solitaire-api.teddysegura-ts.workers.dev";
+    const startButton = document.getElementById("startBtn");
+
+    startButton.disabled = true;
+    startButton.textContent = "Chargement…";
 
     fetch("script.js?v=20260912-2005")
       .then(response => {
@@ -163,6 +167,24 @@
 
         const script = document.createElement("script");
         script.src = URL.createObjectURL(blob);
+
+        script.onload = () => {
+          const guaranteedScript = document.createElement("script");
+          guaranteedScript.src = "guaranteed.js?v=20260913-1319";
+
+          guaranteedScript.onload = () => {
+            startButton.disabled = false;
+            startButton.textContent = "Commencer la partie";
+          };
+
+          guaranteedScript.onerror = () => {
+            document.getElementById("startError").textContent =
+              "Erreur de chargement du mode garanti.";
+          };
+
+          document.body.appendChild(guaranteedScript);
+        };
+
         document.body.appendChild(script);
       })
       .catch(error => {
