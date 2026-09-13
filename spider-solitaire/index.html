@@ -195,6 +195,9 @@
         );
         await runScript(guaranteedCode);
 
+        const mixCode = await loadFreshText("mix-v2.js");
+        await runScript(mixCode);
+
         startButton.disabled = false;
         startButton.textContent = "Commencer la partie";
       } catch (error) {
